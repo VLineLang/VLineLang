@@ -17,9 +17,9 @@ void runs(const std::string& source) {
     else interpreter.interpret(statements, maxDepth);
 }
 
-signed main(int argc, char **argv) {
+signed main(int argc, char *argv[]) {
 	if (argc > 1) {
-		bool used[argc];
+        std::vector<bool> used(argc, false);
 		for (int i = 1; i < argc; i++) {
 			if (argv[i][0] == '-' && argv[i][1] == '-') {
 				std::string op = std::string(argv[i]).substr(2);
@@ -46,13 +46,13 @@ signed main(int argc, char **argv) {
                         used[i + 1] = true;
                     }
                 }
-			} else {
-				if (!flag && !used[i]) {
+			} else if (!used[i]) {
+				if (!flag) {
 					filename = std::string(argv[i]);
 					flag = true;
 				}
+                used[i] = true;
 			}
-			used[i] = true;
 		}
 	}
 
