@@ -1,161 +1,156 @@
-<div style="text-align: center;"><h1>⚡ VLineLang ⚡</h1></div>
+<div align="center">
 
-<strong><center>A modern, clean, fast and powerful high-level programming language.</center></strong>
+# ⚡ VLineLang
+A modern, clean, fast and powerful high-level programming language.
 
-<strong><center>一个现代化的、简洁的、快速的、强大的高级编程语言。</center></strong>
+![Last Commit](https://img.shields.io/github/last-commit/VLineLang/VLineLang)
+![License](https://img.shields.io/github/license/VLineLang/VLineLang)
+![Stars](https://img.shields.io/github/stars/VLineLang/VLineLang)
+![Forks](https://img.shields.io/github/forks/VLineLang/VLineLang)
+![Commit](https://img.shields.io/github/commit-activity/m/VLineLang/VLineLang)
 
-**目前项目正处于开发阶段，期待更多的 PR 和 Issue 提交，感谢所有为项目贡献的开发者！:)**
+[>> Chinese README >>](README_zh.md)
 
----
+</div>
 
-## 🚀 功能特性
+**The project is currently under development. We look forward to more PRs and Issue submissions. Thanks to all the developers who have contributed to the project! :)**
 
-### 函数
+## 🚀 Features
 
-- **成员函数**：
-    - `list.size()`：返回列表的长度。
-    - `list.empty()`：检查列表是否为空。
-    - `list.append(value)`：向列表末尾添加一个元素。
-    - `list.insert(index, value)`：在指定位置插入一个元素。
-    - `list.erase(begin, end)`：删除列表中指定范围的元素。
+### Functions
 
-- **内置函数**：
-    - `print(value)`：打印值到控制台。
-    - `input(prompt)`：从用户输入读取值。
-    - `len(value)`：返回字符串或列表的长度。
-    - `type(value)`：返回值的类型。
-    - `range(start, end)`：生成一个数字列表。
-    - `time()`：返回当前时间戳。
-    - `sleep(ms)`：暂停执行指定的毫秒数。
-    - `system(command)`：执行系统命令。
-    - `exit(code)`：退出程序并返回指定的状态码。
-    - `read(filename)`：读取文件内容。
-    - `write(filename, content)`：将内容写入文件。
-    - `import(filename)`：导入并执行外部文件。
+- **Member Functions**:
+    - `list.size()`: Returns the length of the list.
+    - `list.empty()`: Checks if the list is empty.
+    - `list.append(value)`: Appends an element to the end of the list.
+    - `list.insert(index, value)`: Inserts an element at the specified position.
+    - `list.erase(begin, end)`: Deletes elements within the specified range in the list.
 
-### 关键字
+- **Built-in Functions**:
+    - `print(value)`: Prints a value to the console.
+    - `input(prompt)`: Reads a value from user input.
+    - `len(value)`: Returns the length of a string or list.
+    - `type(value)`: Returns the type of a value.
+    - `range(start, end)`: Generates a list of numbers.
+    - `time()`: Returns the current timestamp.
+    - `sleep(ms)`: Pauses execution for the specified number of milliseconds.
+    - `system(command)`: Executes a system command.
+    - `exit(code)`: Exits the program and returns the specified status code.
+    - `read(filename)`: Reads the contents of a file.
+    - `write(filename, content)`: Writes content to a file.
+    - `import(filename)`: Imports and executes an external file.
 
-- **控制结构**：
-    - `if`：条件判断。
-    - `else`：条件判断的否定分支。
-    - `while`：循环结构。
-    - `break`：跳出循环。
-    - `continue`：跳过当前循环迭代。
+### Keywords
 
-- **函数定义**：
-    - `func`：定义函数。
-    - `return`：从函数返回值。
+- **Control Structures**:
+    - `if`: Conditional judgment.
+    - `else`: The negative branch of a conditional judgment.
+    - `while`: Loop structure.
+    - `break`: Breaks out of a loop.
+    - `continue`: Skips the current loop iteration.
 
-- **特殊值**：
-    - `null`：表示空值。
-    - `true`：表示真值。
-    - `false`：表示假值。
+- **Function Definitions**:
+    - `func`: Defines a function.
+    - `return`: Returns a value from a function.
 
-- **逻辑操作**：
-    - `and`：逻辑与。
-    - `or`：逻辑或。
-    - `not`：逻辑非。
+- **Special Values**:
+    - `null`: Represents a null value.
+    - `true`: Represents a true value.
+    - `false`: Represents a false value.
 
-### 功能
+- **Logical Operations**:
+    - `and`: Logical AND.
+    - `or`: Logical OR.
+    - `not`: Logical NOT.
 
-- **变量与数据类型**：
-    - 支持动态类型推断，无需显式声明变量类型。
-    - 支持多种数据类型，包括：
-        - 数字（`Number`）：整数和浮点数。
-        - 字符串（`String`）：文本数据。
-        - 列表（`List`）：有序集合。
-        - 空值（`null`）：表示无值。
+### Features
 
-- **控制结构**：
-    - 支持条件判断（`if`、`else`）。
-    - 支持循环（`while`）。
-    - 支持跳出循环（`break`、`continue`）。
+- **Variables and Data Types**:
+    - Supports dynamic type inference; no need to explicitly declare variable types.
+    - Supports multiple data types, including:
+        - Numbers (`Number`): Integers and floating-point numbers.
+        - Strings (`String`): Text data.
+        - Lists (`List`): Ordered collections.
+        - Null values (`null`): Represents no value.
 
-- **函数**：
-    - 支持函数定义和调用。
-    - 支持递归和嵌套函数。
-    - 支持函数参数和返回值。
+- **Control Structures**:
+    - Supports conditional judgments (`if`, `else`).
+    - Supports loops (`while`).
+    - Supports breaking out of loops (`break`, `continue`).
 
-- **模块化**：
-    - 支持通过 `import` 导入外部文件。
-    - 支持模块化编程。
+- **Functions**:
+    - Supports function definition and invocation.
+    - Supports recursion and nested functions.
+    - Supports function parameters and return values.
 
-- **递归深度控制**：
-    - 通过 `--depth` 参数控制递归深度，防止栈溢出。
+- **Modularity**:
+    - Supports importing external files via `import`.
+    - Supports modular programming.
 
----
+- **Recursion Depth Control**:
+    - Controls recursion depth via the `--depth` parameter to prevent stack overflow.
 
-## 🛠️ 快速开始
+## 🛠️ Quick Start
 
-### 安装
+### Installation
 
-VLineLang 目前处于开发阶段，您可以通过以下步骤从源代码构建：
+**Building from Source**
 
-1. 克隆仓库：
+VLineLang is currently in the development stage. You can run it by following these steps:
+
+1. Clone the repository:
    ```bash
    git clone https://github.com/VLineLang/VLineLang.git
    cd VLineLang
    ```
 
-2. 编译项目：
+2. Compile the project:
    ```bash
    g++ -std=c++17 -o vline_lang main.cpp
    ```
 
-3. 运行编译器：
+3. Run the compiler:
    ```bash
    ./vline_lang
    ```
 
-### 运行
+**You can also get the latest version from the Release page.**
 
-您可以通过以下方式运行 VLineLang 代码：
+### Running
 
-1. **交互式模式**：
+You can run VLineLang code in the following ways:
+
+1. **Interactive Mode**:
    ```bash
    ./vline_lang
    ```
-   在交互式模式下，您可以逐行输入代码并立即看到执行结果。
+   In interactive mode, you can input code line by line and see the results immediately.
 
-2. **脚本模式**：
+2. **Script Mode**:
    ```bash
    ./vline_lang script.vl
    ```
-   通过指定脚本文件，VLineLang 将执行文件中的代码。
+   By specifying a script file, VLineLang will execute the code in the file.
 
-3. **命令行参数**：
-    - `--in <filename>`：从指定文件读取输入。
-    - `--out <filename>`：将输出重定向到指定文件。
-    - `--depth <value>`：设置递归深度限制。
+3. **Command Line Arguments**:
+    - `--in <filename>`: Reads input from the specified file.
+    - `--out <filename>`: Redirects output to the specified file.
+    - `--depth <value>`: Sets the recursion depth limit.
 
----
+## 📝 Language Syntax
 
-## TODO List
+### Variable Declaration
 
-- [ ] for 循环
-- [ ] 类
-- [ ] 异常处理
-- [ ] 标准库支持
-- [ ] 性能优化
-- [ ] 文档完善
-- [ ] C/C++ 内嵌
-
----
-
-## 📝 语言语法
-
-### 变量声明
-
-VLineLang 可直接声明变量并初始化，支持动态类型推断：
+VLineLang allows direct variable declaration and initialization, supporting dynamic type inference:
 ```vl
-x = 10;
-name = "VLineLang";
-list = [1, 2, 3];
+x = 10
+name = "VLineLang"
+list = [1, 2, 3]
 ```
 
-### 控制结构
+### Control Structures
 
-VLineLang 支持常见的控制结构，如 `if`、`while` 循环：
+VLineLang supports common control structures such as `if` and `while` loops:
 ```vl
 if x > 10 {
     print("x is greater than 10")
@@ -169,9 +164,9 @@ while x > 0 {
 }
 ```
 
-### 函数
+### Functions
 
-VLineLang 支持函数定义和调用，函数可以返回值和递归调用：
+VLineLang supports function definition and invocation. Functions can return values and be called recursively:
 ```vl
 func fact(n) {
     if n <= 1 {
@@ -180,25 +175,31 @@ func fact(n) {
     return n * fact(n - 1)
 }
 
-print(fact(5))  // 输出 120
+print(fact(5))  // Outputs 120
 ```
 
----
+## TODO List
 
-## 🤝 贡献指南
+- [ ] for loops
+- [ ] classes
+- [ ] exception handling
+- [ ] standard library support
+- [ ] performance optimization
+- [ ] documentation improvement
+- [ ] C/C++ embedding
 
-我们欢迎所有开发者参与 VLineLang 的开发！如果您有兴趣贡献代码或提出建议，请遵循以下步骤：
+## 🤝 Contribution Guidelines
 
-1. **Fork 仓库**：在 GitHub 上 Fork 本项目。
-2. **创建分支**：为您的功能或修复创建一个新的分支。
-3. **提交更改**：在分支上进行更改并提交。
-4. **提交 PR**：向主仓库提交 Pull Request，描述您的更改。
+We welcome all developers to contribute to VLineLang! If you are interested in contributing code or making suggestions, please follow these steps:
 
-**请确保您的代码符合项目的编码规范，并通过所有测试。**
+1. **Fork the Repository**: Fork this project on GitHub.
+2. **Create a Branch**: Create a new branch for your feature or fix.
+3. **Make Changes**: Make changes on the branch and commit them.
+4. **Submit a PR**: Submit a Pull Request to the main repository, describing your changes.
 
----
+**Please ensure your code adheres to the project's coding standards and passes all tests.**
 
-## 🙏 鸣谢
+## 🙏 Acknowledgments
 
-- [@karsl-program](https://github.com/karsl-program/) (项目负责人、主要开发者)
-- [@cleversheep2011](https://github.com/cleversheep2011/) (开发者、团队成员、项目建议提供者)
+- [@karsl-program](https://github.com/karsl-program/) (Project Lead, Main Developer)
+- [@cleversheep2011](https://github.com/cleversheep2011/) (Developer, Team Member, Project Advisor)
