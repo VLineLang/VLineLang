@@ -15,14 +15,6 @@
 #include <exception>
 #include <string>
 
-class UserException : public std::exception {
-public:
-    UserException(const std::string& msg) : msg_(msg) {}
-    const char* what() const noexcept override { return msg_.c_str(); }
-private:
-    std::string msg_;
-};
-
 class Interpreter {
 public:
     void interpret(const std::vector<Statement*>& statements, const size_t DepthLimit = 65536) {
@@ -38,12 +30,12 @@ private:
     size_t maxDepth;
 
     void execute(Statement* statement, int depth = 0) {
-        std::stack<std::pair<Statement*, int>> stack;
-        stack.push({statement, depth});
+        std::vector<std::pair<Statement*, int>> stack;
+        stack.push_back({statement, depth});
 
         while (!stack.empty()) {
-            auto current = stack.top();
-            stack.pop();
+            auto current = stack.back();
+            stack.pop_back();
             Statement* stmt = current.first;
             int currentDepth = current.second;
 
@@ -54,7 +46,7 @@ private:
             try {
                 if (auto block = dynamic_cast<BlockStatement*>(stmt)) {
                     for (auto it = block->statements.rbegin(); it != block->statements.rend(); ++it) {
-                        stack.push({*it, currentDepth + 1});
+                        stack.push_back({*it, currentDepth + 1});
                     }
                 } else if (auto varDecl = dynamic_cast<VariableDeclaration*>(stmt)) {
                     Value value;
@@ -108,11 +100,11 @@ private:
                 } else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
                     if (evaluate(ifStmt->condition, currentDepth + 1).numValue != 0) {
                         for (auto it = ifStmt->body.rbegin(); it != ifStmt->body.rend(); ++it) {
-                            stack.push({*it, currentDepth + 1});
+                            stack.push_back({*it, currentDepth + 1});
                         }
                     } else if (!ifStmt->elseBody.empty()) {
                         for (auto it = ifStmt->elseBody.rbegin(); it != ifStmt->elseBody.rend(); ++it) {
-                            stack.push({*it, currentDepth + 1});
+                            stack.push_back({*it, currentDepth + 1});
                         }
                     }
                 } else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
@@ -138,84 +130,84 @@ private:
             throw std::runtime_error("Recursion depth limit exceeded");
         }
 
-        std::stack<std::pair<Expression*, int>> stack;
-        std::stack<Value> valueStack;
-        stack.push({expr, depth});
+        std::vector<std::pair<Expression*, int>> stack;
+        std::vector<Value> valueStack;
+        stack.push_back({expr, depth});
 
         while (!stack.empty()) {
-            auto current = stack.top();
-            stack.pop();
+            auto current = stack.back();
+            stack.pop_back();
             Expression* currentExpr = current.first;
             int currentDepth = current.second;
 
             try {
                 if (auto binExpr = dynamic_cast<BinaryExpression *>(currentExpr)) {
                     if (binExpr->op == "not") {
-                        stack.push({binExpr->left, currentDepth + 1});
+                        stack.push_back({binExpr->left, currentDepth + 1});
                     } else {
                         if (valueStack.size() < 2) {
-                            stack.push({binExpr, currentDepth});
-                            stack.push({binExpr->right, currentDepth + 1});
-                            stack.push({binExpr->left, currentDepth + 1});
+                            stack.push_back({binExpr, currentDepth});
+                            stack.push_back({binExpr->right, currentDepth + 1});
+                            stack.push_back({binExpr->left, currentDepth + 1});
                         } else {
-                            Value right = valueStack.top();
-                            valueStack.pop();
-                            Value left = valueStack.top();
-                            valueStack.pop();
+                            Value right = valueStack.back();
+                            valueStack.pop_back();
+                            Value left = valueStack.back();
+                            valueStack.pop_back();
 
                             if (binExpr->op == "+") {
                                 if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue + right.numValue));
+                                    valueStack.push_back(Value(left.numValue + right.numValue));
                                 } else if (left.type == Value::STRING && right.type == Value::STRING) {
-                                    valueStack.push(Value(left.strValue + right.strValue));
+                                    valueStack.push_back(Value(left.strValue + right.strValue));
                                 } else {
                                     throw std::runtime_error("Type mismatch in binary expression");
                                 }
                             } else if (binExpr->op == "-") {
                                 if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue - right.numValue));
+                                    valueStack.push_back(Value(left.numValue - right.numValue));
                                 } else {
                                     throw std::runtime_error("Type mismatch in binary expression");
                                 }
                             } else if (binExpr->op == "*") {
                                 if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue * right.numValue));
+                                    valueStack.push_back(Value(left.numValue * right.numValue));
                                 } else {
                                     throw std::runtime_error("Type mismatch in binary expression");
                                 }
                             } else if (binExpr->op == "/") {
                                 if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue / right.numValue));
+                                    valueStack.push_back(Value(left.numValue / right.numValue));
                                 } else {
                                     throw std::runtime_error("Type mismatch in binary expression");
                                 }
                             } else if (binExpr->op == "<") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue < right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue < right.numValue ? 1.0 : 0.0));
                                 }
                             } else if (binExpr->op == ">") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue > right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue > right.numValue ? 1.0 : 0.0));
                                 }
                             } else if (binExpr->op == "<=") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue <= right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue <= right.numValue ? 1.0 : 0.0));
                                 }
                             } else if (binExpr->op == ">=") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue >= right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue >= right.numValue ? 1.0 : 0.0));
                                 }
                             } else if (binExpr->op == "==") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue == right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue == right.numValue ? 1.0 : 0.0));
                                 } else if (left.type == Value::STRING) {
-                                    valueStack.push(Value(left.strValue == right.strValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.strValue == right.strValue ? 1.0 : 0.0));
                                 }
                             } else if (binExpr->op == "!=") {
                                 if (left.type == Value::NUMBER) {
-                                    valueStack.push(Value(left.numValue != right.numValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.numValue != right.numValue ? 1.0 : 0.0));
                                 } else if (left.type == Value::STRING) {
-                                    valueStack.push(Value(left.strValue != right.strValue ? 1.0 : 0.0));
+                                    valueStack.push_back(Value(left.strValue != right.strValue ? 1.0 : 0.0));
                                 }
                             } else {
                                 throw std::runtime_error("Unknown operator: " + binExpr->op);
@@ -223,16 +215,16 @@ private:
                         }
                     }
                 } else if (auto numLit = dynamic_cast<NumberLiteral *>(currentExpr)) {
-                    valueStack.push(Value(numLit->value));
+                    valueStack.push_back(Value(numLit->value));
                 } else if (auto strLit = dynamic_cast<StringLiteral *>(currentExpr)) {
-                    valueStack.push(Value(strLit->value));
+                    valueStack.push_back(Value(strLit->value));
                 } else if (auto nullLit = dynamic_cast<NullLiteral*>(currentExpr)) {
-                    valueStack.push(Value(Value::NULL_TYPE)); 
+                    valueStack.push_back(Value(Value::NULL_TYPE)); 
                 } else if (auto id = dynamic_cast<Identifier *>(currentExpr)) {
                     if (variables.find(id->name) == variables.end()) {
                         throw std::runtime_error("Undefined variable: " + id->name);
                     }
-                    valueStack.push(variables[id->name]);
+                    valueStack.push_back(variables[id->name]);
                 } else if (auto funcCall = dynamic_cast<FunctionCall *>(currentExpr)) {
                     std::string funcName = funcCall->name;
                     if (funcName.find(".") != std::string::npos) {
@@ -252,19 +244,19 @@ private:
                             if (funcCall->arguments.size() != 0) {
                                 throw std::runtime_error("size function expects no arguments");
                             }
-                            valueStack.push(Value(static_cast<double>(listValue.listValue.size())));
+                            valueStack.push_back(Value(static_cast<double>(listValue.listValue.size())));
                         } else if (memberFunc == "empty") {
                             if (funcCall->arguments.size() != 0) {
                                 throw std::runtime_error("empty function expects no arguments");
                             }
-                            valueStack.push(Value(listValue.listValue.empty() ? 1.0 : 0.0));
+                            valueStack.push_back(Value(listValue.listValue.empty() ? 1.0 : 0.0));
                         } else if (memberFunc == "append") {
                             if (funcCall->arguments.size() != 1) {
                                 throw std::runtime_error("append function expects exactly one argument");
                             }
                             Value appendValue = evaluate(funcCall->arguments[0], currentDepth + 1);
                             listValue.listValue.push_back(appendValue);
-                            valueStack.push(listValue);
+                            valueStack.push_back(listValue);
                         } else if (memberFunc == "insert") {
                             if (funcCall->arguments.size() != 2) {
                                 throw std::runtime_error("insert function expects exactly two arguments");
@@ -279,7 +271,7 @@ private:
                             }
                             Value insertValue = evaluate(funcCall->arguments[1], currentDepth + 1);
                             listValue.listValue.insert(listValue.listValue.begin() + pos, insertValue);
-                            valueStack.push(listValue);
+                            valueStack.push_back(listValue);
                         } else if (memberFunc == "erase") {
                             if (funcCall->arguments.size() != 2) {
                                 throw std::runtime_error("erase function expects exactly two arguments");
@@ -299,7 +291,7 @@ private:
                             }
                             listValue.listValue.erase(listValue.listValue.begin() + begin,
                                                       listValue.listValue.begin() + end);
-                            valueStack.push(listValue);
+                            valueStack.push_back(listValue);
                         } else {
                             throw std::runtime_error("Undefined member function: " + memberFunc);
                         }
@@ -317,16 +309,16 @@ private:
                                 case Value::NULL_TYPE: typeStr = "null"; break;
                                 default: typeStr = "unknown"; break;
                             }
-                            valueStack.push(Value(typeStr));
+                            valueStack.push_back(Value(typeStr));
                         } else if (funcName == "len") {
                             if (funcCall->arguments.size() != 1) {
                                 throw std::runtime_error("len function expects exactly one argument");
                             }
                             Value argValue = evaluate(funcCall->arguments[0], currentDepth + 1);
                             if (argValue.type == Value::STRING) {
-                                valueStack.push(Value(static_cast<double>(argValue.strValue.length())));
+                                valueStack.push_back(Value(static_cast<double>(argValue.strValue.length())));
                             } else if (argValue.type == Value::LIST) {
-                                valueStack.push(Value(static_cast<double>(argValue.listValue.size())));
+                                valueStack.push_back(Value(static_cast<double>(argValue.listValue.size())));
                             } else {
                                 throw std::runtime_error("len function expects a string or list as argument");
                             }
@@ -343,9 +335,9 @@ private:
                             std::getline(std::cin, inputStr);
                             try {
                                 double numValue = std::stod(inputStr);
-                                valueStack.push(Value(numValue));
+                                valueStack.push_back(Value(numValue));
                             } catch (const std::invalid_argument &) {
-                                valueStack.push(Value(inputStr));
+                                valueStack.push_back(Value(inputStr));
                             }
                         } else if (funcCall->name == "print") {
                             for (Expression *arg: funcCall->arguments) {
@@ -353,12 +345,12 @@ private:
                                 printValue(value);
                             }
                             std::cout << std::endl;
-                            valueStack.push(Value(0.0));
+                            valueStack.push_back(Value(0.0));
                         } else if (funcCall->name == "time") {
                             if (funcCall->arguments.size() != 0) {
                                 throw std::runtime_error("time function expects no arguments");
                             }
-                            valueStack.push(Value(static_cast<double>(std::time(nullptr))));
+                            valueStack.push_back(Value(static_cast<double>(std::time(nullptr))));
                         } else if (funcName == "range") {
                             if (funcCall->arguments.size() != 2) {
                                 throw std::runtime_error("range function expects exactly two arguments");
@@ -374,7 +366,7 @@ private:
                             for (int i = begin; i < end; ++i) {
                                 list.push_back(Value(static_cast<double>(i)));
                             }
-                            valueStack.push(Value(list));
+                            valueStack.push_back(Value(list));
                         } else if (funcCall->name == "sleep") {
                             if (funcCall->arguments.size() != 1) {
                                 throw std::runtime_error("sleep function expects exactly one argument");
@@ -384,7 +376,7 @@ private:
                                 throw std::runtime_error("sleep function expects a number as argument");
                             }
                             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(msValue.numValue)));
-                            valueStack.push(Value(0.0));
+                            valueStack.push_back(Value(0.0));
                         } else if (funcCall->name == "system") {
                             if (funcCall->arguments.size() != 1) {
                                 throw std::runtime_error("system function expects exactly one argument");
@@ -394,7 +386,7 @@ private:
                                 throw std::runtime_error("system function expects a string as argument");
                             }
                             int result = std::system(commandValue.strValue.c_str());
-                            valueStack.push(Value(static_cast<double>(result)));
+                            valueStack.push_back(Value(static_cast<double>(result)));
                         } else if (funcCall->name == "exit") {
                             if (funcCall->arguments.size() != 1) {
                                 throw std::runtime_error("exit function expects exactly one argument");
@@ -417,7 +409,7 @@ private:
                                 throw std::runtime_error("Could not open file: " + filenameValue.strValue);
                             }
                             std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-                            valueStack.push(Value(content));
+                            valueStack.push_back(Value(content));
                         } else if (funcCall->name == "write") {
                             if (funcCall->arguments.size() != 2) {
                                 throw std::runtime_error("write function expects exactly two arguments");
@@ -432,7 +424,7 @@ private:
                                 throw std::runtime_error("Could not open file: " + filenameValue.strValue);
                             }
                             file << contentValue.strValue;
-                            valueStack.push(Value(0.0));
+                            valueStack.push_back(Value(0.0));
                         } else if (functions.find(funcCall->name) != functions.end()) {
                             FunctionDeclaration *func = functions[funcName];
                             if (funcCall->arguments.size() != func->parameters.size()) {
@@ -462,7 +454,7 @@ private:
                                 }
                             }
                             variables = savedVariables;
-                            valueStack.push(result);
+                            valueStack.push_back(result);
                         } else if (funcCall->name == "import") {
                             for (Expression *arg: funcCall->arguments) {
                                 Value filenameValue = evaluate(arg, currentDepth + 1);
@@ -492,7 +484,7 @@ private:
                                     execute(statement);
                                 }
                             }
-                            valueStack.push(Value(0.0));
+                            valueStack.push_back(Value(0.0));
                         } else {
                             throw std::runtime_error("Undefined function: " + funcCall->name);
                         }
@@ -502,16 +494,16 @@ private:
                     for (Expression *element: listLit->elements) {
                         elements.push_back(evaluate(element, currentDepth + 1));
                     }
-                    valueStack.push(Value(elements));
+                    valueStack.push_back(Value(elements));
                 } else {
                     throw std::runtime_error("Unknown expression type");
                 }
             } catch (ReturnException &e) {
-                valueStack.push(e.value);
+                valueStack.push_back(e.value);
             }
         }
 
-        return valueStack.top();
+        return valueStack.back();
     }
 
     void printValue(const Value& value) {
