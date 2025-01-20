@@ -316,7 +316,8 @@ private:
                             }
                             Value argValue = evaluate(funcCall->arguments[0], currentDepth + 1);
                             if (argValue.type == Value::STRING) {
-                                valueStack.push_back(Value(static_cast<double>(argValue.strValue.length())));
+                                const std::string& str = argValue.strValue;
+                                valueStack.push_back(Value(static_cast<double>(utf8len(str))));
                             } else if (argValue.type == Value::LIST) {
                                 valueStack.push_back(Value(static_cast<double>(argValue.listValue.size())));
                             } else {
@@ -523,6 +524,42 @@ private:
         } else if (value.type == Value::NULL_TYPE) {
             std::cout << "null";
         }
+    }
+
+    size_t utf8len(const std::string& str) {
+        size_t charCount = 0;
+        for (size_t i = 0; i < str.size();) {
+            unsigned char c = static_cast<unsigned char>(str[i]);
+            int charWidth = 1;
+
+            if ((c & 0xF8) == 0xF0 && i + 3 < str.size()) {
+                charWidth = 4;
+            } else if ((c & 0xF0) == 0xE0 && i + 2 < str.size()) {
+                charWidth = 3;
+            } else if ((c & 0xE0) == 0xC0 && i + 1 < str.size()) {
+                charWidth = 2;
+            }
+
+            if (i + charWidth > str.size()) {
+                charWidth = 1;
+            }
+
+            bool isValid = true;
+            for (int j = 1; j < charWidth; j++) {
+                if ((str[i + j] & 0xC0) != 0x80) {
+                    isValid = false;
+                    break;
+                }
+            }
+
+            if (isValid) {
+                i += charWidth;
+                charCount++;
+            } else {
+                i += 1;
+            }
+        }
+        return charCount;
     }
 };
 
