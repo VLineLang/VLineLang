@@ -4,17 +4,64 @@ bool flag = false;
 std::string filename;
 long long maxDepth = -1;
 
+std::vector<Token> tokens;
+std::vector<Statement*> statements;
 Interpreter interpreter;
 
-void runs(const std::string& source) {
-	Lexer lexer(source);
-	std::vector<Token> tokens = lexer.tokenize();
+Value result = Value(Value::NULL_TYPE);
 
-	Parser parser(tokens);
-	std::vector<Statement*> statements = parser.parse();
+void lexers(std::string command) {
+    try {
+        tokens.clear();
+        Lexer lexer(command);
+        tokens = lexer.tokenize();
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    }
+}
 
-	if (maxDepth < 0) interpreter.interpret(statements);
-    else interpreter.interpret(statements, maxDepth);
+void parsers() {
+    try {
+        statements.clear();
+	    Parser parser(tokens);
+	    statements = parser.parse();
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    }
+}
+
+void interpreters() {
+    try {
+        result = Value(Value::NULL_TYPE);
+        if (maxDepth < 0) interpreter.interpret(statements, 65536, result);
+        else interpreter.interpret(statements, maxDepth, result);
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) {
+            exit(1);
+        }
+    }
 }
 
 signed main(int argc, char *argv[]) {
@@ -68,7 +115,29 @@ signed main(int argc, char *argv[]) {
 				printf("%s", VLINE_VERSION);
 				continue;
 			}
-			runs(order);
+
+            lexers(order);
+
+            bool flags = false;
+
+            if (tokens.size() > 1 && tokens[tokens.size()-2].type == TOKEN_PUNCTUATION && tokens[tokens.size()-2].value == "{") {
+                flags = true;
+                std::string command;
+                while (true) {
+                    printf("... ");
+                    std::getline(std::cin, command);
+                    if (command.empty()) {
+                        break;
+                    }
+                    order += "\n" + command;
+                }
+            }
+
+			if (flags) lexers(order);
+            parsers();
+            interpreters();
+            printf("=> ");
+            printValue(result);
 		}
 	} else {
 		std::ifstream inputFile;
@@ -81,9 +150,11 @@ signed main(int argc, char *argv[]) {
 		std::string command, commands;
 
 		while (getline(inputFile, command))
-			commands += command+"\n";
+			commands += command + "\n";
 
-		runs(commands);
+        lexers(commands);
+        parsers();
+        interpreters();
 
 		inputFile.close();
 	}

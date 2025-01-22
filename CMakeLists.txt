@@ -14,4 +14,5 @@ add_executable(
         core/value.hpp
         core/interpreter.hpp
         core/lexer.hpp
+        core/errors.hpp
 )

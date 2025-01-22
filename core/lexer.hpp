@@ -2,10 +2,10 @@
 #define LEXER_HPP
 
 #include "token.hpp"
+#include "errors.hpp"
 #include <string>
 #include <vector>
 #include <cctype>
-#include <stdexcept>
 
 class Lexer {
 public:
@@ -36,7 +36,7 @@ public:
                        current == '[' || current == ']') {
                 tokens.push_back(punctuation());
             } else {
-                throw std::runtime_error("Unexpected character: " + std::string(1, current));
+                throwSyntaxError("Unexpected character: " + std::string(1, current));
             }
         }
         tokens.push_back({TOKEN_EOF, ""});
@@ -160,14 +160,11 @@ private:
             }
             return {TOKEN_OPERATOR, op};
         } else if (current == '-') {
-            if (position > 0 && source[position - 1] == '(') {
-                tokens.push_back({TOKEN_NUMBER, "0"});
-            }
             op += current;
             consume();
             return {TOKEN_OPERATOR, op};
         } else {
-            throw std::runtime_error("Unexpected character: " + std::string(1, current));
+            throwSyntaxError("Unexpected character: " + std::string(1, current));
         }
     }
 
@@ -179,7 +176,7 @@ private:
             consume();
             return {TOKEN_PUNCTUATION, std::string(1, punc)};
         } else {
-            throw std::runtime_error("Unexpected character: " + std::string(1, punc));
+            throwSyntaxError("Unexpected character: " + std::string(1, punc));
         }
     }
 };

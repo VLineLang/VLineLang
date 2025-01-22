@@ -111,6 +111,14 @@ struct BinaryExpression : Expression {
             : op(op), left(left), right(right) {}
 };
 
+struct UnaryExpression : Expression {
+    std::string op;
+    Expression* expr;
+
+    UnaryExpression(const std::string& op, Expression* expr)
+            : op(op), expr(expr) {}
+};
+
 struct NumberLiteral : Expression {
     double value;
 

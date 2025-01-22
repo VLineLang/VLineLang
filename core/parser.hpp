@@ -3,8 +3,8 @@
 
 #include "token.hpp"
 #include "ast.hpp"
+#include "errors.hpp"
 #include <vector>
-#include <stdexcept>
 
 class Parser {
 public:
@@ -70,11 +70,11 @@ private:
         consume();
         Expression* index = expression();
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
-            throw std::runtime_error("Expected ']' after list index");
+            throwSyntaxError("Expected ']' after list index");
         }
         consume();
         if (peek().type != TOKEN_OPERATOR || peek().value != "=") {
-            throw std::runtime_error("Expected '=' after list index");
+            throwSyntaxError("Expected '=' after list index");
         }
         consume();
         Expression* value = expression();
@@ -94,7 +94,7 @@ private:
         Expression* condition = expression();
 
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
-            throw std::runtime_error("Expected '{' after if condition");
+            throwSyntaxError("Expected '{' after if condition");
         }
         consume();
 
@@ -114,7 +114,7 @@ private:
                 }
                 consume();
             } else {
-                throw std::runtime_error("Expected '{' after else");
+                throwSyntaxError("Expected '{' after else");
             }
         }
 
@@ -122,17 +122,17 @@ private:
     }
 
     WhileStatement* whileStatement() {
-        consume(); 
+        consume();
         Expression* condition = expression();
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
-            throw std::runtime_error("Expected '{' after while condition");
+            throwSyntaxError("Expected '{' after while condition");
         }
-        consume(); 
+        consume();
         std::vector<Statement*> body;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
             body.push_back(statement());
         }
-        consume(); 
+        consume();
         return new WhileStatement(condition, body);
     }
 
@@ -245,7 +245,11 @@ private:
         } else if (token.type == TOKEN_OPERATOR && token.value == "-") {
             consume();
             Expression* expr = factor();
-            return new BinaryExpression("-", new NumberLiteral(0.0), expr);
+            return new UnaryExpression("-", expr);
+        } else if (token.type == TOKEN_KEYWORD && token.value == "not") {
+            consume();
+            Expression* expr = primary();
+            return new UnaryExpression("not", expr);
         } else {
             return primary();
         }
@@ -273,7 +277,7 @@ private:
         } else if (token.type == TOKEN_KEYWORD && token.value == "not") {
             consume();
             Expression* expr = primary();
-            return new BinaryExpression("not", expr, nullptr);
+            return new UnaryExpression("not", expr);
         } else if (token.type == TOKEN_IDENTIFIER) {
             consume();
             if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
@@ -291,16 +295,16 @@ private:
                 consume();
                 return new FunctionCall(token.value, args);
             } else if (peek().type == TOKEN_OPERATOR && peek().value == ".") {
-                consume(); 
+                consume();
                 Token member = peek();
                 if (member.type != TOKEN_IDENTIFIER) {
-                    throw std::runtime_error("Expected member function name after '.'");
+                    throwSyntaxError("Expected member function name after '.'");
                 }
-                consume(); 
+                consume();
                 if (peek().type != TOKEN_PUNCTUATION || peek().value != "(") {
-                    throw std::runtime_error("Expected '(' after member function name");
+                    throwSyntaxError("Expected '(' after member function name");
                 }
-                consume(); 
+                consume();
                 std::vector<Expression*> args;
                 while (true) {
                     if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
@@ -311,13 +315,13 @@ private:
                     }
                     args.push_back(expression());
                 }
-                consume(); 
+                consume();
                 return new FunctionCall(token.value + "." + member.value, args);
             } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "[") {
                 consume();
                 Expression* index = expression();
                 if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
-                    throw std::runtime_error("Expected ']' after list index");
+                    throwSyntaxError("Expected ']' after list index");
                 }
                 consume();
                 return new BinaryExpression("[]", new Identifier(token.value), index);
@@ -340,14 +344,14 @@ private:
                     } else if (peek().type == TOKEN_PUNCTUATION && peek().value == ",") {
                         consume();
                     } else {
-                        throw std::runtime_error("Expected ',' or ']' in list literal");
+                        throwSyntaxError("Expected ',' or ']' in list literal");
                     }
                 }
             }
             consume();
             return new ListLiteral(elements);
         } else {
-            throw std::runtime_error("Unexpected token in primary expression: " + token.value);
+            throwSyntaxError("Unexpected token in primary expression: " + token.value);
         }
     }
 };
