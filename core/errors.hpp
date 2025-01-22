@@ -11,6 +11,11 @@ const std::string INDEX_ERROR = "Index Error: ";
 const std::string IO_ERROR = "IO Error: ";
 const std::string ZERO_DIVISION_ERROR = "Zero Division Error: ";
 const std::string RECURSION_ERROR = "Recursion Error: ";
+const std::string RUNTIME_ERROR = "Runtime Error: ";
+
+inline void throwRuntimeError(const std::string& msg) {
+    throw std::runtime_error(RUNTIME_ERROR + msg);
+}
 
 inline void throwSyntaxError(const std::string& msg) {
     throw std::runtime_error(SYNTAX_ERROR + msg);

@@ -205,8 +205,9 @@ private:
     Expression* comparison_expression() {
         Expression* left = arithmetic_expression();
         while (peek().type == TOKEN_OPERATOR &&
-               (peek().value == "<" || peek().value == ">" ||
-                peek().value == "<=" || peek().value == ">=")) {
+               (peek().value == "<" || peek().value == "<=" ||
+                peek().value == ">" || peek().value == ">=" ||
+                peek().value == "==" || peek().value == "!=")) {
             Token op = peek();
             consume();
             Expression* right = arithmetic_expression();

@@ -15,4 +15,7 @@ add_executable(
         core/interpreter.hpp
         core/lexer.hpp
         core/errors.hpp
+        core/bytecode.hpp
+        core/codegen.hpp
+        core/vm.hpp
 )

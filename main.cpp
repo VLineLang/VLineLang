@@ -6,7 +6,18 @@ long long maxDepth = -1;
 
 std::vector<Token> tokens;
 std::vector<Statement*> statements;
-Interpreter interpreter;
+VM globalVM;
+
+void interpreters() {
+    try {
+        CodeGen codegen;
+        BytecodeProgram program = codegen.generate(statements);
+        Value result = globalVM.execute(program);
+    } catch (const std::runtime_error& e) {
+        std::cerr << e.what() << std::endl;
+        if (flag) exit(1);
+    }
+}
 
 Value result = Value(Value::NULL_TYPE);
 
@@ -46,23 +57,6 @@ void parsers() {
     }
 }
 
-void interpreters() {
-    try {
-        result = Value(Value::NULL_TYPE);
-        if (maxDepth < 0) interpreter.interpret(statements, 65536, result);
-        else interpreter.interpret(statements, maxDepth, result);
-    } catch (const std::runtime_error& e) {
-        std::cerr << e.what() << std::endl;
-        if (flag) {
-            exit(1);
-        }
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        if (flag) {
-            exit(1);
-        }
-    }
-}
 
 signed main(int argc, char *argv[]) {
 	if (argc > 1) {
