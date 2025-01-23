@@ -1,4 +1,3 @@
-// bytecode.hpp
 #ifndef BYTECODE_HPP
 #define BYTECODE_HPP
 
@@ -7,25 +6,18 @@
 #include <variant>
 
 enum BytecodeOp {
-    LOAD_CONST,
-    LOAD_VAR,
-    STORE_VAR,
-    BINARY_OP,
-    UNARY_OP,
-    JUMP,
-    JUMP_IF_FALSE,
-    JUMP_IF_TRUE,
-    CALL_FUNCTION,
-    RETURN,
-    POP,
-    COMPARE_OP,
-    BUILD_LIST,
-    GET_ITER,
-    FOR_ITER,
-    JUMP_ABSOLUTE,
-    POP_JUMP_IF_FALSE,
-    LOAD_GLOBAL,
-    STORE_GLOBAL
+    LOAD_CONST,    // 加载常量值（数值/字符串）
+    LOAD_VAR,      // 加载变量值
+    STORE_VAR,     // 存储到变量
+    BINARY_OP,     // 二元运算（含算术和比较）
+    JUMP_IF_FALSE, // 条件跳转（检测栈顶值）
+    CALL_FUNCTION, // 函数调用
+    JUMP,          // 无条件跳转（绝对地址）
+    RETURN,        // 函数返回
+    BUILD_LIST,    // 构建列表
+    GET_ITER,      // 获取迭代器
+    FOR_ITER,       // 迭代控制
+    POP
 };
 
 enum CompareOp {

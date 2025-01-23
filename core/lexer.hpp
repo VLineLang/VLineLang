@@ -88,7 +88,8 @@ private:
         if (value == "func" || value == "if" || value == "while" ||
             value == "return" || value == "true" || value == "false" ||
             value == "and" || value == "or" || value == "not" || value == "else" ||
-            value == "break" || value == "continue" || value == "null") {
+            value == "break" || value == "continue" || value == "null" ||
+            value == "for" || value == "in") {
             return {TOKEN_KEYWORD, value};
         }
         return {TOKEN_IDENTIFIER, value};

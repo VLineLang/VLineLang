@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "bytecode.hpp"
 
 struct ASTNode {
     virtual ~ASTNode() = default;
@@ -21,7 +22,8 @@ struct Statement : ASTNode {
         RETURN_STATEMENT,
         BREAK_STATEMENT,
         CONTINUE_STATEMENT,
-        EXPRESSION_STATEMENT
+        EXPRESSION_STATEMENT,
+        FOR_STATEMENT
     };
 
     virtual StatementType type() const = 0;
@@ -81,10 +83,12 @@ struct WhileStatement : Statement {
     }
 };
 
-struct FunctionDeclaration : Statement {
+
+struct FunctionDeclaration : public Statement {
     std::string name;
     std::vector<std::string> parameters;
     std::vector<Statement*> body;
+    BytecodeProgram bytecode;
 
     FunctionDeclaration(const std::string& name, const std::vector<std::string>& parameters, const std::vector<Statement*>& body)
             : name(name), parameters(parameters), body(body) {}
@@ -186,6 +190,19 @@ struct BlockStatement : Statement {
 
     StatementType type() const override {
         return BLOCK;
+    }
+};
+
+struct ForStatement : Statement {
+    std::string variable;
+    Expression* iterable;
+    std::vector<Statement*> body;
+
+    ForStatement(const std::string& var, Expression* iter, const std::vector<Statement*>& b)
+            : variable(var), iterable(iter), body(b) {}
+
+    StatementType type() const override {
+        return FOR_STATEMENT;
     }
 };
 

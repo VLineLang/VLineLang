@@ -1,4 +1,3 @@
-// codegen.hpp
 #ifndef CODEGEN_HPP
 #define CODEGEN_HPP
 
@@ -17,10 +16,23 @@ public:
         return program;
     }
 
+    void setReplMode(bool mode) {
+        isReplMode = mode;
+    }
+
+    std::map<std::string, FunctionDeclaration*> getFunctions() const {
+        return functions;
+    }
+
 private:
+    bool isReplMode = false;
+    bool inFunction = false;
+    std::map<std::string, FunctionDeclaration*> functions;
     std::map<std::string, int> variables;
     std::map<std::string, int> labels;
     int labelCounter = 0;
+
+    int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
         if (auto varDecl = dynamic_cast<VariableDeclaration*>(stmt)) {
@@ -33,7 +45,7 @@ private:
         }
         else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
             generateExpression(ifStmt->condition, program);
-            program.push_back({POP_JUMP_IF_FALSE, createLabel()});
+            program.push_back({JUMP_IF_FALSE, createLabel()});
             size_t falseJumpPos = program.size() - 1;
 
             for (Statement* bodyStmt : ifStmt->body) {
@@ -53,25 +65,72 @@ private:
                 program[falseJumpPos].operand = static_cast<int>(program.size());
             }
         }
+        else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
+            generateExpression(forStmt->iterable, program);
+            std::string tempVar = "__iter_temp_" + std::to_string(tempVarCounter++);
+            program.push_back({STORE_VAR, tempVar});
+            program.push_back({LOAD_VAR, tempVar});
+            program.push_back({GET_ITER});
+            size_t loopStart = program.size();
+
+            program.push_back({FOR_ITER, createLabel()});
+            size_t exitPos = program.size() - 1;
+
+            program.push_back({STORE_VAR, forStmt->variable});
+
+
+            for (Statement* bodyStmt : forStmt->body) {
+                generateStatement(bodyStmt, program);
+                program.push_back({POP, 0});
+            }
+
+            program.push_back({JUMP, static_cast<int>(loopStart)});
+            program[exitPos].operand = static_cast<int>(program.size());
+        }
         else if (auto whileStmt = dynamic_cast<WhileStatement*>(stmt)) {
             size_t loopStart = program.size();
             generateExpression(whileStmt->condition, program);
-            program.push_back({POP_JUMP_IF_FALSE, createLabel()});
+            program.push_back({JUMP_IF_FALSE, createLabel()});
             size_t exitPos = program.size() - 1;
 
             for (Statement* bodyStmt : whileStmt->body) {
                 generateStatement(bodyStmt, program);
             }
 
-            program.push_back({JUMP_ABSOLUTE, static_cast<int>(loopStart)});
+            program.push_back({JUMP, static_cast<int>(loopStart)});
             program[exitPos].operand = static_cast<int>(program.size());
         }
         else if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(stmt)) {
+            functions[funcDecl->name] = funcDecl;
+            BytecodeProgram funcProgram;
 
+
+            inFunction = true;
+            for (Statement* bodyStmt : funcDecl->body) {
+                generateStatement(bodyStmt, funcProgram);
+            }
+            inFunction = false;
+
+
+            if (funcProgram.empty() || funcProgram.back().op != RETURN) {
+                funcProgram.push_back({LOAD_CONST, 0.0});
+                funcProgram.push_back({RETURN, 0});
+            }
+            funcDecl->bytecode = funcProgram;
+        }
+        else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
+
+            if (!inFunction) {
+                throwSyntaxError("'return' outside function");
+            }
+            generateExpression(returnStmt->value, program);
+            program.push_back({RETURN, 0});
         }
         else if (auto exprStmt = dynamic_cast<ExpressionStatement*>(stmt)) {
             generateExpression(exprStmt->expression, program);
-            program.push_back({POP, 0});
+            if (!isReplMode) {
+                program.push_back({POP, 0});
+            }
         }
     }
 
@@ -95,33 +154,29 @@ private:
             handleBinaryOp(binExpr, program);
         }
         else if (auto unaryExpr = dynamic_cast<UnaryExpression*>(expr)) {
-            generateExpression(unaryExpr->expr, program);
-            program.push_back({UNARY_OP, unaryExpr->op});
+            if (unaryExpr->op == "-") {
+                program.push_back({LOAD_CONST, 0.0});
+                generateExpression(unaryExpr->expr, program);
+                program.push_back({BINARY_OP, "-"});
+            } else if (unaryExpr->op == "not") {
+                generateExpression(unaryExpr->expr, program);
+                program.push_back({LOAD_CONST, 0.0});
+                program.push_back({BINARY_OP, "=="});
+            }
         }
         else if (auto funcCall = dynamic_cast<FunctionCall*>(expr)) {
             for (auto arg : funcCall->arguments) {
                 generateExpression(arg, program);
             }
-            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name,
-                                                                  static_cast<int>(funcCall->arguments.size())}});
+            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, static_cast<int>(funcCall->arguments.size())}});
         }
     }
 
     void handleBinaryOp(BinaryExpression* expr, BytecodeProgram& program) {
-        std::string op = expr->op;
-        if (op == "and" || op == "or") {
+        generateExpression(expr->left, program);
+        generateExpression(expr->right, program);
 
-        }
-        else if (op == "<" || op == "<=" || op == "==" || op == "!=" || op == ">" || op == ">=") {
-            generateExpression(expr->left, program);
-            generateExpression(expr->right, program);
-            program.push_back({COMPARE_OP, getCompareOp(op)});
-        }
-        else {
-            generateExpression(expr->left, program);
-            generateExpression(expr->right, program);
-            program.push_back({BINARY_OP, op});
-        }
+        program.push_back({BINARY_OP, expr->op});
     }
 
     CompareOp getCompareOp(const std::string& op) {

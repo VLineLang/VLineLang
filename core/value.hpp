@@ -17,6 +17,37 @@ struct Value {
     Value(const std::string& value) : type(STRING), strValue(value) {}
     Value(const std::vector<Value>& value) : type(LIST), listValue(value) {}
     Value(ValueType type) : type(type) {}
+    Value(const Value& other) : type(other.type) {
+        switch (type) {
+            case LIST:
+                listValue = other.listValue;
+                break;
+            case STRING:
+                new (&strValue) std::string(other.strValue);
+                break;
+            default:
+                numValue = other.numValue;
+        }
+    }
+
+    Value& operator=(const Value& other) {
+        if (this == &other) return *this;
+
+        if (type == STRING) strValue.~basic_string();
+
+        type = other.type;
+        switch (type) {
+            case LIST:
+                listValue = other.listValue;
+                break;
+            case STRING:
+                new (&strValue) std::string(other.strValue);
+                break;
+            default:
+                numValue = other.numValue;
+        }
+        return *this;
+    }
 };
 
 class ReturnException : public std::exception {

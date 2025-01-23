@@ -1,8 +1,8 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#define VLINE_VERSION "0.3.0-alpha.1"
-#define VLINE_PUBLISH "Jan. 22th, 2025"
+#define VLINE_VERSION "0.4.0-alpha.1"
+#define VLINE_PUBLISH "Jan. 23th, 2025"
 #define VLINE_COMPILER "GNU GCC/ISO C++17"
 
 #include "token.hpp"
@@ -10,7 +10,9 @@
 #include "ast.hpp"
 #include "value.hpp"
 #include "parser.hpp"
-#include "interpreter.hpp"
 #include "errors.hpp"
+#include "vm.hpp"
+#include "bytecode.hpp"
+#include "codegen.hpp"
 
 #endif

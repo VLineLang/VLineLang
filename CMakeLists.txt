@@ -12,7 +12,6 @@ add_executable(
         core/core.hpp
         core/token.hpp
         core/value.hpp
-        core/interpreter.hpp
         core/lexer.hpp
         core/errors.hpp
         core/bytecode.hpp
