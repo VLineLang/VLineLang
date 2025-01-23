@@ -50,6 +50,8 @@ private:
         } else if (token.type == TOKEN_KEYWORD && token.value == "continue") {
             consume();
             return new ContinueStatement();
+        } else if (token.type == TOKEN_KEYWORD && token.value == "for") {
+            return forStatement();
         } else if (token.type == TOKEN_PUNCTUATION && token.value == "{") {
             consume();
             std::vector<Statement*> statements;
@@ -119,6 +121,40 @@ private:
         }
 
         return new IfStatement(condition, body, elseBody);
+    }
+
+    ForStatement* forStatement() {
+        consume();
+
+
+        if (peek().type != TOKEN_IDENTIFIER) {
+            throwSyntaxError("Expected identifier after 'for'");
+        }
+        std::string varName = peek().value;
+        consume();
+
+
+        if (peek().type != TOKEN_KEYWORD || peek().value != "in") {
+            throwSyntaxError("Expected 'in' after for loop variable");
+        }
+        consume();
+
+
+        Expression* iterable = expression();
+
+
+        if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
+            throwSyntaxError("Expected '{' to start for loop body");
+        }
+        consume();
+
+        std::vector<Statement*> body;
+        while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
+            body.push_back(statement());
+        }
+        consume();
+
+        return new ForStatement(varName, iterable, body);
     }
 
     WhileStatement* whileStatement() {

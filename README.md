@@ -180,7 +180,7 @@ print(fact(5))  // Outputs 120
 
 ## TODO List
 
-- [ ] for loops
+- [x] for loops
 - [ ] classes
 - [ ] exception handling
 - [ ] standard library support

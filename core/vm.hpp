@@ -1,4 +1,3 @@
-// vm.hpp
 #ifndef VM_HPP
 #define VM_HPP
 
@@ -19,62 +18,85 @@
 #include <fstream>
 #include <memory>
 
+void printValue(const Value& value) {
+    switch (value.type) {
+        case Value::NUMBER: std::cout << value.numValue; break;
+        case Value::STRING: std::cout << value.strValue; break;
+        case Value::LIST: {
+            std::cout << "[";
+            for (size_t i = 0; i < value.listValue.size(); ++i) {
+                printValue(value.listValue[i]);
+                if (i < value.listValue.size() - 1) std::cout << ", ";
+            }
+            std::cout << "]";
+            break;
+        }
+        case Value::NULL_TYPE: std::cout << "null"; break;
+    }
+}
+
 class VM {
 public:
+    struct Frame {
+        std::map<std::string, Value> locals;
+        Frame* parent;
+        BytecodeProgram program;
+        size_t pc;
+        Value returnValue;
 
-    std::map<std::string, Value> globals;
-    std::map<std::string, FunctionDeclaration*> functions;
-    std::stack<std::map<std::string, Value>> localScopes;
+
+        Frame(const BytecodeProgram& program, Frame* parent = nullptr)
+                : program(program), pc(0), parent(parent) {}
+    };
+
+    std::stack<Frame> frames;
     std::stack<Value> operandStack;
+    std::map<std::string, FunctionDeclaration*> functions;
 
+    void setDepthLimit(size_t depth) {
+        maxRecursionDepth = depth;
+    }
 
-    size_t maxRecursionDepth = 1000;
-    size_t maxLoopIterations = 1'000'000;
+    Value execute() {
+        if (frames.empty()) {
+            return Value(Value::NULL_TYPE);
+        }
 
-    Value execute(const BytecodeProgram& program) {
-        size_t pc = 0;
-        size_t loopCounter = 0;
-        localScopes.push({});
+        Frame& currentFrame = frames.top();
 
-        while (pc < program.size()) {
-            const Bytecode& instr = program[pc];
+        while (currentFrame.pc < currentFrame.program.size()) {
+            const Bytecode& instr = currentFrame.program[currentFrame.pc];
 
             try {
                 switch (instr.op) {
                     case LOAD_CONST: handleLoadConst(instr); break;
-                    case LOAD_VAR: handleLoadVar(instr); break;
-                    case STORE_VAR: handleStoreVar(instr); break;
+                    case LOAD_VAR: handleLoadVar(instr, currentFrame); break;
+                    case STORE_VAR: handleStoreVar(instr, currentFrame); break;
                     case BINARY_OP: handleBinaryOp(instr); break;
-                    case UNARY_OP: handleUnaryOp(instr); break;
-                    case COMPARE_OP: handleCompareOp(instr); break;
-                    case JUMP: pc = handleJump(instr); continue;
-                    case JUMP_IF_FALSE: pc = handleJumpIfFalse(instr, pc); continue;
-                    case JUMP_ABSOLUTE: pc = handleJumpAbsolute(instr); continue;
+                    case JUMP: currentFrame.pc = handleJump(instr); continue;
+                    case JUMP_IF_FALSE: currentFrame.pc = handleJumpIfFalse(instr, currentFrame.pc); continue;
                     case CALL_FUNCTION: handleCallFunction(instr); break;
                     case BUILD_LIST: handleBuildList(instr); break;
                     case GET_ITER: handleGetIter(); break;
-                    case FOR_ITER: pc = handleForIter(instr, pc); continue;
+                    case FOR_ITER: currentFrame.pc = handleForIter(instr, currentFrame.pc); continue;
                     case POP: operandStack.pop(); break;
-                    case RETURN: handleReturn(); break;
+                    case RETURN: handleReturn(currentFrame); break;
                     default: throwRuntimeError("Unknown bytecode instruction");
                 }
-                pc++;
+                currentFrame.pc++;
             } catch (const std::runtime_error& e) {
-                localScopes.pop();
+                if (frames.size() > 1) {
+                    frames.pop();
+                }
                 throw;
-            }
-
-
-            if (++loopCounter > maxLoopIterations) {
-                throwRuntimeError("Maximum loop iterations exceeded");
             }
         }
 
-        localScopes.pop();
-        return operandStack.empty() ? Value(Value::NULL_TYPE) : operandStack.top();
+        return currentFrame.returnValue;
     }
 
 private:
+    size_t maxRecursionDepth = 65536;
 
     void handleLoadConst(const Bytecode& instr) {
         if (auto pval = std::get_if<double>(&instr.operand)) {
@@ -86,22 +108,29 @@ private:
         }
     }
 
-    void handleLoadVar(const Bytecode& instr) {
+    void handleLoadVar(const Bytecode& instr, Frame& frame) {
         const std::string& name = std::get<std::string>(instr.operand);
-        auto& locals = localScopes.top();
+        Frame* currentFrame = &frame;
 
-        if (locals.count(name)) {
-            operandStack.push(locals[name]);
-        } else if (globals.count(name)) {
-            operandStack.push(globals[name]);
-        } else {
-            throwIdentifierError("Undefined variable '" + name + "'");
+
+        while (currentFrame != nullptr) {
+            if (currentFrame->locals.count(name)) {
+                operandStack.push(currentFrame->locals[name]);
+                return;
+            }
+            currentFrame = currentFrame->parent;
         }
+
+
+        throwIdentifierError("Undefined variable '" + name + "'");
     }
 
-    void handleStoreVar(const Bytecode& instr) {
+    void handleStoreVar(const Bytecode& instr, Frame& frame) {
         const std::string& name = std::get<std::string>(instr.operand);
-        localScopes.top()[name] = operandStack.top();
+        if (operandStack.empty()) {
+            throwRuntimeError("Stack underflow in store operation");
+        }
+        frame.locals[name] = operandStack.top();
         operandStack.pop();
     }
 
@@ -112,84 +141,53 @@ private:
         Value right = operandStack.top(); operandStack.pop();
         Value left = operandStack.top(); operandStack.pop();
         std::string op = std::get<std::string>(instr.operand);
-
-        if (op == "+") {
-            if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                operandStack.push(Value(left.numValue + right.numValue));
-            } else if (left.type == Value::STRING && right.type == Value::STRING) {
-                operandStack.push(Value(left.strValue + right.strValue));
-            } else {
-                throwTypeError("Type mismatch in binary operation");
-            }
-        } else if (op == "-") {
-            if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                operandStack.push(Value(left.numValue - right.numValue));
-            } else {
-                throwTypeError("Type mismatch in binary operation");
-            }
-        } else if (op == "*") {
-            if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                operandStack.push(Value(left.numValue * right.numValue));
-            } else {
-                throwTypeError("Type mismatch in binary operation");
-            }
-        } else if (op == "/") {
-            if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                if (right.numValue == 0) {
-                    throwZeroDivisionError("Zero division error");
+        if (op == "+" || op == "-" || op == "*" || op == "/") {
+            if (op == "+") {
+                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                    operandStack.push(Value(left.numValue + right.numValue));
+                } else if (left.type == Value::STRING && right.type == Value::STRING) {
+                    operandStack.push(Value(left.strValue + right.strValue));
+                } else {
+                    throwTypeError("Type mismatch in binary operation");
                 }
-                operandStack.push(Value(left.numValue / right.numValue));
+            } else if (op == "-") {
+                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                    operandStack.push(Value(left.numValue - right.numValue));
+                } else {
+                    throwTypeError("Type mismatch in binary operation");
+                }
+            } else if (op == "*") {
+                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                    operandStack.push(Value(left.numValue * right.numValue));
+                } else {
+                    throwTypeError("Type mismatch in binary operation");
+                }
+            } else if (op == "/") {
+                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                    if (right.numValue == 0) {
+                        throwZeroDivisionError("Zero division error");
+                    }
+                    operandStack.push(Value(left.numValue / right.numValue));
+                } else {
+                    throwTypeError("Type mismatch in binary operation");
+                }
             } else {
-                throwTypeError("Type mismatch in binary operation");
+                throwRuntimeError("Unknown binary operator: " + op);
             }
+        } else if (op == "<" || op == "<=" || op == "==" ||
+                  op == "!=" || op == ">" || op == ">=") {
+            bool result;
+            if (op == "<") result = (left.numValue < right.numValue);
+            else if (op == "<=") result = (left.numValue <= right.numValue);
+            else if (op == "==") result = (left.numValue == right.numValue);
+            else if (op == "!=") result = (left.numValue != right.numValue);
+            else if (op == ">") result = (left.numValue > right.numValue);
+            else if (op == ">=") result = (left.numValue >= right.numValue);
+
+            operandStack.push(Value(result ? 1.0 : 0.0));
         } else {
-            throwRuntimeError("Unknown binary operator: " + op);
+            throwRuntimeError("Unknown operator: " + op);
         }
-    }
-
-    void handleUnaryOp(const Bytecode& instr) {
-        if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in unary operation");
-        }
-        Value value = operandStack.top(); operandStack.pop();
-        std::string op = std::get<std::string>(instr.operand);
-
-        if (op == "-") {
-            if (value.type == Value::NUMBER) {
-                operandStack.push(Value(-value.numValue));
-            } else {
-                throwTypeError("Unary operator '-' expects a number");
-            }
-        } else if (op == "not") {
-            if (value.type == Value::NUMBER) {
-                operandStack.push(Value(value.numValue == 0.0 ? 1.0 : 0.0));
-            } else {
-                throwTypeError("Unary operator 'not' expects a boolean (number)");
-            }
-        } else {
-            throwRuntimeError("Unknown unary operator: " + op);
-        }
-    }
-
-    void handleCompareOp(const Bytecode& instr) {
-        if (operandStack.size() < 2) {
-            throwRuntimeError("Stack underflow in compare operation");
-        }
-        Value right = operandStack.top(); operandStack.pop();
-        Value left = operandStack.top(); operandStack.pop();
-        CompareOp cmp = std::get<CompareOp>(instr.operand);
-
-        bool result = false;
-        switch (cmp) {
-            case CMP_LT: result = (left.numValue < right.numValue); break;
-            case CMP_LE: result = (left.numValue <= right.numValue); break;
-            case CMP_EQ: result = (left.numValue == right.numValue); break;
-            case CMP_NE: result = (left.numValue != right.numValue); break;
-            case CMP_GT: result = (left.numValue > right.numValue); break;
-            case CMP_GE: result = (left.numValue >= right.numValue); break;
-            default: throwRuntimeError("Unknown compare operator");
-        }
-        operandStack.push(Value(result ? 1.0 : 0.0));
     }
 
     size_t handleJump(const Bytecode& instr) {
@@ -207,24 +205,6 @@ private:
         return pc + 1;
     }
 
-    size_t handleJumpAbsolute(const Bytecode& instr) {
-        return std::get<int>(instr.operand);
-    }
-
-    void handleCallFunction(const Bytecode& instr) {
-        CallFunctionOperand op = std::get<CallFunctionOperand>(instr.operand);
-        std::vector<Value> args;
-        for (int i = 0; i < op.argCount; i++) {
-            if (operandStack.empty()) {
-                throwRuntimeError("Stack underflow in function call");
-            }
-            args.insert(args.begin(), operandStack.top());
-            operandStack.pop();
-        }
-        Value result = callFunction(op.funcName, args);
-        operandStack.push(result);
-    }
-
     void handleBuildList(const Bytecode& instr) {
         int count = std::get<int>(instr.operand);
         if (operandStack.size() < count) {
@@ -240,108 +220,118 @@ private:
 
     void handleGetIter() {
         if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in get iter");
+            throwRuntimeError("Stack underflow in GET_ITER");
         }
-        Value iterable = operandStack.top(); operandStack.pop();
-        if (iterable.type != Value::LIST) {
+        Value original = operandStack.top();
+        operandStack.pop();
+
+        if (original.type != Value::LIST) {
             throwTypeError("Can only iterate over lists");
         }
-        operandStack.push(iterable);
+
+
+        Value iterator;
+        iterator.type = Value::LIST;
+        iterator.listValue = original.listValue;
+        operandStack.push(iterator);
     }
 
     size_t handleForIter(const Bytecode& instr, size_t pc) {
         if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in for iter");
+            throwRuntimeError("Stack underflow in FOR_ITER");
         }
-        Value& iterable = operandStack.top();
-        if (iterable.type != Value::LIST) {
-            throwTypeError("Can only iterate over lists");
-        }
-        if (iterable.listValue.empty()) {
+        Value& iterator = operandStack.top();
+
+        if (iterator.listValue.empty()) {
             operandStack.pop();
             return std::get<int>(instr.operand);
         }
-        Value current = iterable.listValue.back();
-        iterable.listValue.pop_back();
+
+
+        Value current = iterator.listValue.front();
+        iterator.listValue.erase(iterator.listValue.begin());
         operandStack.push(current);
         return pc + 1;
     }
 
-    void handleReturn() {
-        if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in return");
+    void handleCallFunction(const Bytecode& instr) {
+        CallFunctionOperand op = std::get<CallFunctionOperand>(instr.operand);
+        std::vector<Value> args;
+        for (int i = 0; i < op.argCount; i++) {
+            if (operandStack.empty()) {
+                throwRuntimeError("Stack underflow in function call");
+            }
+            args.insert(args.begin(), operandStack.top());
+            operandStack.pop();
         }
-        Value result = operandStack.top();
-        operandStack.pop();
-        throw ReturnException(result);
+
+        Value result;
+        if (functions.count(op.funcName)) {
+            FunctionDeclaration* func = functions[op.funcName];
+            if (func->parameters.size() != args.size()) {
+                throwTypeError("Function " + op.funcName + " expects " +
+                               std::to_string(func->parameters.size()) + " arguments, but got " +
+                               std::to_string(args.size()));
+            }
+
+
+            Frame newFrame(func->bytecode, &frames.top());
+
+            for (size_t i = 0; i < func->parameters.size(); ++i) {
+                newFrame.locals[func->parameters[i]] = args[i];
+            }
+            frames.push(newFrame);
+
+
+            result = execute();
+            frames.pop();
+        } else {
+            result = callBuiltinFunction(op.funcName, args);
+        }
+
+        operandStack.push(result);
     }
 
-    Value callUserFunction(const std::string& name, const std::vector<Value>& args) {
-        if (functions.find(name) == functions.end()) {
-            throwIdentifierError("Undefined function: " + name);
+    Value callBuiltinFunction(const std::string& name, const std::vector<Value>& args) {
+        if (name == "print") {
+            return builtinPrint(args);
+        } else if (name == "input") {
+            return builtinInput(args);
+        } else if (name == "len") {
+            return builtinLen(args);
+        } else if (name == "type") {
+            return builtinType(args);
+        } else if (name == "range") {
+            return builtinRange(args);
+        } else if (name == "sleep") {
+            return builtinSleep(args);
+        } else if (name == "system") {
+            return builtinSystem(args);
+        } else if (name == "exit") {
+            return builtinExit(args);
+        } else if (name == "read") {
+            return builtinRead(args);
+        } else if (name == "write") {
+            return builtinWrite(args);
+        } else if (name == "time") {
+            return builtinTime();
+        } else if (name == "list.append") {
+            return listAppend(args);
+        } else {
+            throwIdentifierError("Undefined builtin function: " + name);
         }
-
-        FunctionDeclaration* func = functions[name];
-        if (func->parameters.size() != args.size()) {
-            throwTypeError("Function " + name + " expects " + std::to_string(func->parameters.size()) +
-                           " arguments, but got " + std::to_string(args.size()));
-        }
-
-
-        std::map<std::string, Value> savedLocals = localScopes.top();
-        localScopes.push({});
-
-
-        for (size_t i = 0; i < func->parameters.size(); ++i) {
-            localScopes.top()[func->parameters[i]] = args[i];
-        }
-
-
-        Value result = Value(Value::NULL_TYPE);
-        try {
-            CodeGen codegen;
-            BytecodeProgram program = codegen.generate(func->body);
-            result = execute(program);
-        } catch (const ReturnException& e) {
-            result = e.value;
-        }
-
-
-        localScopes.pop();
-        localScopes.top() = savedLocals;
-
-        return result;
     }
 
 
-    Value callFunction(const std::string& name, const std::vector<Value>& args) {
-
-        if (localScopes.size() > maxRecursionDepth) {
-            throwRecursionError("Maximum recursion depth exceeded");
+    void handleReturn(Frame& frame) {
+        if (!operandStack.empty()) {
+            frame.returnValue = operandStack.top();
+            operandStack.pop();
+        } else {
+            frame.returnValue = Value(Value::NULL_TYPE);
         }
-
-
-        if (name == "print") return builtinPrint(args);
-        if (name == "input") return builtinInput(args);
-        if (name == "len") return builtinLen(args);
-        if (name == "type") return builtinType(args);
-        if (name == "range") return builtinRange(args);
-        if (name == "sleep") return builtinSleep(args);
-        if (name == "system") return builtinSystem(args);
-        if (name == "exit") return builtinExit(args);
-        if (name == "read") return builtinRead(args);
-        if (name == "write") return builtinWrite(args);
-        if (name == "time") return builtinTime();
-        if (name == "list.append") return listAppend(args);
-
-
-        if (functions.count(name)) {
-            return callUserFunction(name, args);
-        }
-
-        throwIdentifierError("Undefined function '" + name + "'");
+        frame.pc = frame.program.size();
     }
-
 
     Value builtinPrint(const std::vector<Value>& args) {
         for (size_t i = 0; i < args.size(); ++i) {
@@ -461,33 +451,14 @@ private:
             throwTypeError("list.append() expects a list");
         }
 
-
         Value listCopy = args[0];
         listCopy.listValue.push_back(args[1]);
         return listCopy;
     }
 
-
     void checkArgCount(const std::string& func, size_t expected, const std::vector<Value>& args) {
         if (args.size() != expected) {
             throwTypeError(func + "() expects " + std::to_string(expected) + " arguments");
-        }
-    }
-
-    void printValue(const Value& value) {
-        switch (value.type) {
-            case Value::NUMBER: std::cout << value.numValue; break;
-            case Value::STRING: std::cout << value.strValue; break;
-            case Value::LIST: {
-                std::cout << "[";
-                for (size_t i = 0; i < value.listValue.size(); ++i) {
-                    printValue(value.listValue[i]);
-                    if (i < value.listValue.size() - 1) std::cout << ", ";
-                }
-                std::cout << "]";
-                break;
-            }
-            case Value::NULL_TYPE: std::cout << "null"; break;
         }
     }
 };
