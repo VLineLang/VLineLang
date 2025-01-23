@@ -50,7 +50,7 @@ A modern, clean, fast and powerful high-level programming language.
     - `continue`: Skips the current loop iteration.
 
 - **Function Definitions**:
-    - `func`: Defines a function.
+    - `fn`: Defines a function.
     - `return`: Returns a value from a function.
 
 - **Special Values**:
@@ -168,7 +168,7 @@ while x > 0 {
 
 VLineLang supports function definition and invocation. Functions can return values and be called recursively:
 ```vl
-func fact(n) {
+fn fact(n) {
     if n <= 1 {
         return 1
     }

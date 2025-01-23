@@ -33,14 +33,21 @@ private:
     Statement* statement() {
         Token token = peek();
         if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_PUNCTUATION && peek(1).value == "[") {
-            return subscriptAssignment();
+            size_t savedPos = position;
+            try {
+                return subscriptAssignment();
+            } catch (const std::runtime_error& e) {
+                position = savedPos;
+                Expression* expr = expression();
+                return new ExpressionStatement(expr);
+            }
         } else if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_OPERATOR && peek(1).value == "=") {
             return assignment();
         } else if (token.type == TOKEN_KEYWORD && token.value == "if") {
             return ifStatement();
         } else if (token.type == TOKEN_KEYWORD && token.value == "while") {
             return whileStatement();
-        } else if (token.type == TOKEN_KEYWORD && token.value == "func") {
+        } else if (token.type == TOKEN_KEYWORD && token.value == "fn") {
             return functionDeclaration();
         } else if (token.type == TOKEN_KEYWORD && token.value == "return") {
             return returnStatement();
@@ -52,14 +59,6 @@ private:
             return new ContinueStatement();
         } else if (token.type == TOKEN_KEYWORD && token.value == "for") {
             return forStatement();
-        } else if (token.type == TOKEN_PUNCTUATION && token.value == "{") {
-            consume();
-            std::vector<Statement*> statements;
-            while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
-                statements.push_back(statement());
-            }
-            consume();
-            return new BlockStatement(statements);
         } else {
             Expression* expr = expression();
             return new ExpressionStatement(expr);

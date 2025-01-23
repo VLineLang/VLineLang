@@ -50,7 +50,7 @@
     - `continue`：跳过当前循环迭代。
 
 - **函数定义**：
-    - `func`：定义函数。
+    - `fn`：定义函数。
     - `return`：从函数返回值。
 
 - **特殊值**：
@@ -170,7 +170,7 @@ while x > 0 {
 
 VLineLang 支持函数定义和调用，函数可以返回值和递归调用：
 ```vl
-func fact(n) {
+fn fact(n) {
     if n <= 1 {
         return 1
     }

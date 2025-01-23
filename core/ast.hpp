@@ -13,8 +13,6 @@ struct Expression : ASTNode {};
 
 struct Statement : ASTNode {
     enum StatementType {
-        BLOCK,
-        VARIABLE_DECLARATION,
         ASSIGNMENT,
         IF_STATEMENT,
         WHILE_STATEMENT,
@@ -27,18 +25,6 @@ struct Statement : ASTNode {
     };
 
     virtual StatementType type() const = 0;
-};
-
-struct VariableDeclaration : Statement {
-    std::string name;
-    Expression* initializer;
-
-    VariableDeclaration(const std::string& name, Expression* initializer)
-            : name(name), initializer(initializer) {}
-
-    StatementType type() const override {
-        return VARIABLE_DECLARATION;
-    }
 };
 
 struct Assignment : Statement {
@@ -181,16 +167,6 @@ struct ListLiteral : Expression {
     std::vector<Expression*> elements;
 
     ListLiteral(const std::vector<Expression*>& elements) : elements(elements) {}
-};
-
-struct BlockStatement : Statement {
-    std::vector<Statement*> statements;
-
-    BlockStatement(const std::vector<Statement*>& statements) : statements(statements) {}
-
-    StatementType type() const override {
-        return BLOCK;
-    }
 };
 
 struct ForStatement : Statement {

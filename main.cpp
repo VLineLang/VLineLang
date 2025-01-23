@@ -47,11 +47,7 @@ void lexers(std::string command) {
         if (flag) {
             exit(1);
         }
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        if (flag) {
-            exit(1);
-        }
+        tokens.clear();
     }
 }
 
@@ -65,11 +61,7 @@ void parsers() {
         if (flag) {
             exit(1);
         }
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        if (flag) {
-            exit(1);
-        }
+        statements.clear();
     }
 }
 

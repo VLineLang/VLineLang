@@ -17,7 +17,9 @@ enum BytecodeOp {
     BUILD_LIST,    // 构建列表
     GET_ITER,      // 获取迭代器
     FOR_ITER,       // 迭代控制
-    POP
+    POP,           // 弹出栈顶元素
+    LOAD_SUBSCRIPT,   // 新增：加载列表元素
+    STORE_SUBSCRIPT   // 新增：存储到列表元素
 };
 
 enum CompareOp {

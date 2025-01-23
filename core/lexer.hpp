@@ -32,8 +32,7 @@ public:
                        current == '>' || current == '!' || current == '-') {
                 tokens.push_back(operator_());
             } else if (current == '(' || current == ')' || current == '{' ||
-                       current == '}' || current == ';' || current == ',' ||
-                       current == '[' || current == ']') {
+                       current == '}' || current == ',' || current == '[' || current == ']') {
                 tokens.push_back(punctuation());
             } else {
                 throwSyntaxError("Unexpected character: " + std::string(1, current));
@@ -81,11 +80,11 @@ private:
 
     Token identifier() {
         std::string value;
-        while (std::isalnum(peek())) {
+        while (std::isalnum(peek()) || peek() == '_') {
             value += peek();
             consume();
         }
-        if (value == "func" || value == "if" || value == "while" ||
+        if (value == "fn" || value == "if" || value == "while" ||
             value == "return" || value == "true" || value == "false" ||
             value == "and" || value == "or" || value == "not" || value == "else" ||
             value == "break" || value == "continue" || value == "null" ||
@@ -95,11 +94,8 @@ private:
         return {TOKEN_IDENTIFIER, value};
     }
 
-    Token number(bool isNegative = false) {
+    Token number() {
         std::string value;
-        if (isNegative) {
-            value += '-';
-        }
         bool hasDot = false;
         while (std::isdigit(peek()) || (peek() == '.' && !hasDot)) {
             if (peek() == '.') {
@@ -172,8 +168,7 @@ private:
     Token punctuation() {
         char punc = peek();
         if (punc == '(' || punc == ')' || punc == '{' ||
-            punc == '}' || punc == ';' || punc == ',' ||
-            punc == '[' || punc == ']') {
+            punc == '}' || punc == ',' || punc == '[' || punc == ']') {
             consume();
             return {TOKEN_PUNCTUATION, std::string(1, punc)};
         } else {

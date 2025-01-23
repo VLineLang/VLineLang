@@ -81,6 +81,8 @@ public:
                     case FOR_ITER: currentFrame.pc = handleForIter(instr, currentFrame.pc); continue;
                     case POP: operandStack.pop(); break;
                     case RETURN: handleReturn(currentFrame); break;
+                    case LOAD_SUBSCRIPT: handleLoadSubscript(); break;
+                    case STORE_SUBSCRIPT: handleStoreSubscript(); break;
                     default: throwRuntimeError("Unknown bytecode instruction");
                 }
                 currentFrame.pc++;
@@ -108,6 +110,30 @@ private:
         }
     }
 
+    void handleLoadSubscript() {
+        if (operandStack.size() < 2) throwRuntimeError("Stack underflow");
+        Value index = operandStack.top(); operandStack.pop();
+        Value list = operandStack.top(); operandStack.pop();
+        if (list.type != Value::LIST) throwTypeError("Expected list");
+        if (index.type != Value::NUMBER) throwTypeError("Index must be number");
+        int idx = static_cast<int>(index.numValue);
+        if (idx < 0 || idx >= list.listValue.size()) throwIndexError("Index out of range");
+        operandStack.push(list.listValue[idx]);
+    }
+
+    void handleStoreSubscript() {
+        if (operandStack.size() < 3) throwRuntimeError("Stack underflow");
+        Value value = operandStack.top(); operandStack.pop();
+        Value index = operandStack.top(); operandStack.pop();
+        Value list = operandStack.top(); operandStack.pop();
+        if (list.type != Value::LIST) throwTypeError("Expected list");
+        if (index.type != Value::NUMBER) throwTypeError("Index must be number");
+        int idx = static_cast<int>(index.numValue);
+        if (idx < 0 || idx >= list.listValue.size()) throwIndexError("Index out of range");
+        list.listValue[idx] = value;
+        operandStack.push(list);
+    }
+
     void handleLoadVar(const Bytecode& instr, Frame& frame) {
         const std::string& name = std::get<std::string>(instr.operand);
         Frame* currentFrame = &frame;
@@ -130,8 +156,9 @@ private:
         if (operandStack.empty()) {
             throwRuntimeError("Stack underflow in store operation");
         }
-        frame.locals[name] = operandStack.top();
+        Value value = operandStack.top();
         operandStack.pop();
+        frame.locals[name] = value;
     }
 
     void handleBinaryOp(const Bytecode& instr) {
@@ -185,6 +212,18 @@ private:
             else if (op == ">=") result = (left.numValue >= right.numValue);
 
             operandStack.push(Value(result ? 1.0 : 0.0));
+        } else if (op == "[]") {
+            if (left.type != Value::LIST) {
+                throwTypeError("Expected list for [] operator");
+            }
+            if (right.type != Value::NUMBER) {
+                throwTypeError("Expected number for list index");
+            }
+            int index = static_cast<int>(right.numValue);
+            if (index < 0 || index >= left.listValue.size()) {
+                throwIndexError("List index out of range");
+            }
+            operandStack.push(left.listValue[index]);
         } else {
             throwRuntimeError("Unknown operator: " + op);
         }

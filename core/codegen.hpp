@@ -35,13 +35,17 @@ private:
     int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
-        if (auto varDecl = dynamic_cast<VariableDeclaration*>(stmt)) {
-            generateExpression(varDecl->initializer, program);
-            program.push_back({STORE_VAR, varDecl->name});
-        }
-        else if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
-            generateExpression(assignment->value, program);
-            program.push_back({STORE_VAR, assignment->target});
+        if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
+            if (assignment->isSubscriptAssignment) {
+                generateExpression(new Identifier(assignment->target), program);
+                generateExpression(assignment->index, program);
+                generateExpression(assignment->value, program);
+                program.push_back({STORE_SUBSCRIPT});
+                program.push_back({STORE_VAR, assignment->target});
+            } else {
+                generateExpression(assignment->value, program);
+                program.push_back({STORE_VAR, assignment->target});
+            }
         }
         else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
             generateExpression(ifStmt->condition, program);
@@ -151,7 +155,13 @@ private:
             program.push_back({LOAD_VAR, id->name});
         }
         else if (auto binExpr = dynamic_cast<BinaryExpression*>(expr)) {
-            handleBinaryOp(binExpr, program);
+            if (binExpr->op == "[]") { // 处理下标访问
+                generateExpression(binExpr->left, program);  // 加载列表
+                generateExpression(binExpr->right, program); // 加载索引
+                program.push_back({LOAD_SUBSCRIPT});         // 生成加载下标指令
+            } else {
+                handleBinaryOp(binExpr, program);
+            }
         }
         else if (auto unaryExpr = dynamic_cast<UnaryExpression*>(expr)) {
             if (unaryExpr->op == "-") {
@@ -177,16 +187,6 @@ private:
         generateExpression(expr->right, program);
 
         program.push_back({BINARY_OP, expr->op});
-    }
-
-    CompareOp getCompareOp(const std::string& op) {
-        if (op == "<") return CMP_LT;
-        if (op == "<=") return CMP_LE;
-        if (op == "==") return CMP_EQ;
-        if (op == "!=") return CMP_NE;
-        if (op == ">") return CMP_GT;
-        if (op == ">=") return CMP_GE;
-        throw std::runtime_error("Unknown comparison operator: " + op);
     }
 
     int createLabel() { return labelCounter++; }
