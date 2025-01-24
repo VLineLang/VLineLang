@@ -3,7 +3,7 @@
 
 #include "ast.hpp"
 #include "bytecode.hpp"
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 class CodeGen {
@@ -20,16 +20,16 @@ public:
         isReplMode = mode;
     }
 
-    std::map<std::string, FunctionDeclaration*> getFunctions() const {
+    std::unordered_map<std::string, FunctionDeclaration*> getFunctions() const {
         return functions;
     }
 
 private:
     bool isReplMode = false;
     bool inFunction = false;
-    std::map<std::string, FunctionDeclaration*> functions;
-    std::map<std::string, int> variables;
-    std::map<std::string, int> labels;
+    std::unordered_map<std::string, FunctionDeclaration*> functions;
+    std::unordered_map<std::string, int> variables;
+    std::unordered_map<std::string, int> labels;
     int labelCounter = 0;
 
     int tempVarCounter = 0;
@@ -123,12 +123,11 @@ private:
             funcDecl->bytecode = funcProgram;
         }
         else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
-
             if (!inFunction) {
                 throwSyntaxError("'return' outside function");
             }
             generateExpression(returnStmt->value, program);
-            program.push_back({RETURN, 0});
+            program.push_back({RETURN});
         }
         else if (auto exprStmt = dynamic_cast<ExpressionStatement*>(stmt)) {
             generateExpression(exprStmt->expression, program);
@@ -155,10 +154,10 @@ private:
             program.push_back({LOAD_VAR, id->name});
         }
         else if (auto binExpr = dynamic_cast<BinaryExpression*>(expr)) {
-            if (binExpr->op == "[]") { // 处理下标访问
-                generateExpression(binExpr->left, program);  // 加载列表
-                generateExpression(binExpr->right, program); // 加载索引
-                program.push_back({LOAD_SUBSCRIPT});         // 生成加载下标指令
+            if (binExpr->op == "[]") {
+                generateExpression(binExpr->left, program);
+                generateExpression(binExpr->right, program);
+                program.push_back({LOAD_SUBSCRIPT});
             } else {
                 handleBinaryOp(binExpr, program);
             }

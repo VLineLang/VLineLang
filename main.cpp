@@ -8,6 +8,96 @@ std::vector<Token> tokens;
 std::vector<Statement*> statements;
 VM globalVM;
 
+//void debugBytecode(const Bytecode& bytecode) {
+//    switch (bytecode.op) {
+//        case LOAD_CONST:
+//            std::cout << "LOAD_CONST";
+//            if (std::holds_alternative<double>(bytecode.operand)) {
+//                std::cout << " (Value: " << std::get<double>(bytecode.operand) << ")";
+//            } else if (std::holds_alternative<std::string>(bytecode.operand)) {
+//                std::cout << " (Value: " << std::get<std::string>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case LOAD_VAR:
+//            std::cout << "LOAD_VAR";
+//            if (std::holds_alternative<std::string>(bytecode.operand)) {
+//                std::cout << " (Variable: " << std::get<std::string>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case STORE_VAR:
+//            std::cout << "STORE_VAR";
+//            if (std::holds_alternative<std::string>(bytecode.operand)) {
+//                std::cout << " (Variable: " << std::get<std::string>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case BINARY_OP:
+//            std::cout << "BINARY_OP";
+//            if (std::holds_alternative<CompareOp>(bytecode.operand)) {
+//                CompareOp cmpOp = std::get<CompareOp>(bytecode.operand);
+//                std::cout << " (Compare Op: ";
+//                switch (cmpOp) {
+//                    case CMP_LT: std::cout << "<"; break;
+//                    case CMP_LE: std::cout << "<="; break;
+//                    case CMP_EQ: std::cout << "=="; break;
+//                    case CMP_NE: std::cout << "!="; break;
+//                    case CMP_GT: std::cout << ">"; break;
+//                    case CMP_GE: std::cout << ">="; break;
+//                }
+//                std::cout << ")";
+//            }
+//            break;
+//        case JUMP_IF_FALSE:
+//            std::cout << "JUMP_IF_FALSE";
+//            if (std::holds_alternative<int>(bytecode.operand)) {
+//                std::cout << " (Jump Offset: " << std::get<int>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case CALL_FUNCTION:
+//            std::cout << "CALL_FUNCTION";
+//            if (std::holds_alternative<CallFunctionOperand>(bytecode.operand)) {
+//                CallFunctionOperand callOp = std::get<CallFunctionOperand>(bytecode.operand);
+//                std::cout << " (Function: " << callOp.funcName << ", Arg Count: " << callOp.argCount << ")";
+//            }
+//            break;
+//        case JUMP:
+//            std::cout << "JUMP";
+//            if (std::holds_alternative<int>(bytecode.operand)) {
+//                std::cout << " (Jump Offset: " << std::get<int>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case RETURN:
+//            std::cout << "RETURN";
+//            break;
+//        case BUILD_LIST:
+//            std::cout << "BUILD_LIST";
+//            if (std::holds_alternative<int>(bytecode.operand)) {
+//                std::cout << " (List Size: " << std::get<int>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case GET_ITER:
+//            std::cout << "GET_ITER";
+//            break;
+//        case FOR_ITER:
+//            std::cout << "FOR_ITER";
+//            if (std::holds_alternative<int>(bytecode.operand)) {
+//                std::cout << " (Iter Offset: " << std::get<int>(bytecode.operand) << ")";
+//            }
+//            break;
+//        case POP:
+//            std::cout << "POP";
+//            break;
+//        case LOAD_SUBSCRIPT:
+//            std::cout << "LOAD_SUBSCRIPT";
+//            break;
+//        case STORE_SUBSCRIPT:
+//            std::cout << "STORE_SUBSCRIPT";
+//            break;
+//        default:
+//            std::cout << "UNKNOWN_OP";
+//            break;
+//    }
+//    std::cout << std::endl;
+//}
 
 void interpreters() {
     try {
@@ -18,17 +108,23 @@ void interpreters() {
         auto newFuncs = codegen.getFunctions();
         for (const auto& pair : newFuncs) {
             globalVM.functions[pair.first] = pair.second;
+//            for (auto pg : pair.second->bytecode) {
+//                debugBytecode(pg);
+//            }
         }
 
 
         if (globalVM.frames.empty()) {
-            globalVM.frames.push(VM::Frame(mainProgram));
+            globalVM.frames.push_back(VM::Frame(mainProgram));
         } else {
-
-            VM::Frame& globalFrame = globalVM.frames.top();
+            VM::Frame& globalFrame = globalVM.frames.back();
             globalFrame.program = mainProgram;
             globalFrame.pc = 0;
         }
+
+//        for (auto pg : globalVM.frames.back().program) {
+//            debugBytecode(pg);  // debug
+//        }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {
@@ -139,13 +235,13 @@ signed main(int argc, char *argv[]) {
             parsers();
             interpreters();
             if (!globalVM.operandStack.empty()) {
-                Value topValue = globalVM.operandStack.top();
-                std::cout << "=> ";
+                Value topValue = globalVM.operandStack.back();
+                printf("\n=> ");
                 printValue(topValue);
-                std::cout << std::endl;
-                globalVM.operandStack.pop();
+                printf("\n");
+                globalVM.operandStack.pop_back();
             } else {
-                std::cout << "=> null" << std::endl;
+                printf("\n=> null\n");
             }
         }
     } else {
