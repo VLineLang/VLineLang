@@ -97,7 +97,7 @@ private:
     Token number() {
         std::string value;
         bool hasDot = false;
-        while (std::isdigit(peek()) || (peek() == '.' && !hasDot)) {
+        while (std::isdigit(peek()) || (peek() == '.' && !hasDot) || (peek() == 'e') || (peek() == 'E')) {
             if (peek() == '.') {
                 hasDot = true;
             }

@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <variant>
+#include "bignum.hpp"
 
 enum BytecodeOp {
     LOAD_CONST,    // 加载常量值（数值/字符串）
@@ -38,7 +39,7 @@ struct CallFunctionOperand {
 
 struct Bytecode {
     BytecodeOp op;
-    std::variant<double, std::string, int, CompareOp, CallFunctionOperand> operand;
+    std::variant<BigNum, std::string, CompareOp, CallFunctionOperand> operand;
 };
 
 using BytecodeProgram = std::vector<Bytecode>;

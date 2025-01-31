@@ -139,12 +139,12 @@ signed main(int argc, char *argv[]) {
             interpreters();
             if (!globalVM.operandStack.empty()) {
                 Value topValue = globalVM.operandStack.top();
-                std::cout << "=> ";
+                std::cout << "\n=> ";
                 printValue(topValue);
                 std::cout << std::endl;
                 globalVM.operandStack.pop();
             } else {
-                std::cout << "=> null" << std::endl;
+                std::cout << "\n=> null" << std::endl;
             }
         }
     } else {

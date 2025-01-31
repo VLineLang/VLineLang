@@ -14,5 +14,6 @@
 #include "vm.hpp"
 #include "bytecode.hpp"
 #include "codegen.hpp"
+#include "bignum.hpp"
 
 #endif

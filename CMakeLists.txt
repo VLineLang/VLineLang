@@ -17,4 +17,5 @@ add_executable(
         core/bytecode.hpp
         core/codegen.hpp
         core/vm.hpp
+        core/bignum.hpp
 )

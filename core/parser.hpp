@@ -277,7 +277,7 @@ private:
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
-            return new NumberLiteral(std::stod(token.value));
+            return new NumberLiteral(BigNum(token.value));
         } else if (token.type == TOKEN_OPERATOR && token.value == "-") {
             consume();
             Expression* expr = factor();
@@ -295,17 +295,17 @@ private:
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
-            return new NumberLiteral(std::stod(token.value));
+            return new NumberLiteral(BigNum(token.value));
         } else if (token.type == TOKEN_STRING) {
             consume();
             return new StringLiteral(token.value);
         } else if (token.type == TOKEN_KEYWORD && (token.value == "true" || token.value == "false")) {
             if (token.value == "true") {
                 consume();
-                return new NumberLiteral(1.0);
+                return new NumberLiteral(BigNum(1));
             } else if (token.value == "false") {
                 consume();
-                return new NumberLiteral(0.0);
+                return new NumberLiteral(BigNum(0));
             }
         } else if (token.type == TOKEN_KEYWORD && token.value == "null") {
             consume();

@@ -141,12 +141,7 @@ private:
 
     void generateExpression(Expression* expr, BytecodeProgram& program) {
         if (auto numLit = dynamic_cast<NumberLiteral*>(expr)) {
-            double val = numLit->value;
-            if (val == floor(val) && val >= INT_MIN && val <= INT_MAX) {
-                program.push_back({LOAD_CONST, static_cast<int>(val)});
-            } else {
-                program.push_back({LOAD_CONST, val});
-            }
+            program.push_back({LOAD_CONST, numLit->value});
         }
         else if (auto strLit = dynamic_cast<StringLiteral*>(expr)) {
             program.push_back({LOAD_CONST, strLit->value});

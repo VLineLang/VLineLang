@@ -110,9 +110,8 @@ struct UnaryExpression : Expression {
 };
 
 struct NumberLiteral : Expression {
-    double value;
-
-    NumberLiteral(double value) : value(value) {}
+    BigNum value;
+    NumberLiteral(const BigNum& val) : value(val) {}
 };
 
 struct StringLiteral : Expression {
