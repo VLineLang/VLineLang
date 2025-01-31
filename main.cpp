@@ -24,7 +24,6 @@ void interpreters() {
         if (globalVM.frames.empty()) {
             globalVM.frames.push(VM::Frame(mainProgram));
         } else {
-
             VM::Frame& globalFrame = globalVM.frames.top();
             globalFrame.program = mainProgram;
             globalFrame.pc = 0;

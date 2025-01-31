@@ -1,8 +1,8 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#define VLINE_VERSION "0.4.0-alpha.1"
-#define VLINE_PUBLISH "Jan. 23th, 2025"
+#define VLINE_VERSION "0.5.0-alpha.1"
+#define VLINE_PUBLISH "Jan. 31st, 2025"
 #define VLINE_COMPILER "GNU GCC/ISO C++17"
 
 #include "token.hpp"
