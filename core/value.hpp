@@ -6,65 +6,24 @@
 #include <stdexcept>
 
 struct Value {
-    enum ValueType { NUMBER, STRING, LIST, NULL_TYPE };
+    enum ValueType { INT, DOUBLE, STRING, LIST, NULL_TYPE };
     ValueType type;
-    double numValue;
     std::string strValue;
     std::vector<Value> listValue;
 
-    Value() : type(NUMBER), numValue(0.0) {}
-    Value(double value) : type(NUMBER), numValue(value) {}
-    Value(const std::string& value) : type(STRING), strValue(value) {}
-    Value(const std::vector<Value>& value) : type(LIST), listValue(value) {}
-    Value(ValueType type) : type(type) {}
-    Value(const Value& other) : type(other.type) {
-        switch (type) {
-            case LIST:
-                listValue = other.listValue;
-                break;
-            case STRING:
-                new (&strValue) std::string(other.strValue);
-                break;
-            default:
-                numValue = other.numValue;
-        }
-    }
+    union {
+        int intValue;
+        double doubleValue;
+    };
 
-    Value& operator=(const Value& other) {
-        if (this == &other) return *this;
-
-        if (type == STRING) strValue.~basic_string();
-
-        type = other.type;
-        switch (type) {
-            case LIST:
-                listValue = other.listValue;
-                break;
-            case STRING:
-                new (&strValue) std::string(other.strValue);
-                break;
-            default:
-                numValue = other.numValue;
-        }
-        return *this;
-    }
-};
-
-class ReturnException : public std::exception {
-public:
-    Value value;
-
-    ReturnException(Value val) : value(val) {}
-};
-
-class BreakException : public std::exception {
-public:
-    BreakException() = default;
-};
-
-class ContinueException : public std::exception {
-public:
-    ContinueException() = default;
+    Value() : type(NULL_TYPE) {}
+    explicit Value(long long val) : type(INT), intValue(val) {}
+    explicit Value(int val) : type(INT), intValue(val) {}
+    explicit Value(unsigned long long val) : type(INT), intValue(val) {}
+    explicit Value(float val) : type(DOUBLE), doubleValue(val) {}
+    explicit Value(double val) : type(DOUBLE), doubleValue(val) {}
+    explicit Value(const std::string& val) : type(STRING), strValue(val) {}
+    explicit Value(const std::vector<Value>& val) : type(LIST), listValue(val) {}
 };
 
 #endif

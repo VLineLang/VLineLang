@@ -20,18 +20,19 @@
 
 void printValue(const Value& value) {
     switch (value.type) {
-        case Value::NUMBER: std::cout << value.numValue; break;
-        case Value::STRING: std::cout << value.strValue; break;
+        case Value::INT: printf("%d", value.intValue); break;
+        case Value::DOUBLE: printf("%lf", value.doubleValue); break;
+        case Value::STRING: printf("%s", value.strValue.c_str()); break;
         case Value::LIST: {
-            std::cout << "[";
+            printf("[");
             for (size_t i = 0; i < value.listValue.size(); ++i) {
                 printValue(value.listValue[i]);
-                if (i < value.listValue.size() - 1) std::cout << ", ";
+                if (i < value.listValue.size() - 1) printf(", ");
             }
-            std::cout << "]";
+            printf("]");
             break;
         }
-        case Value::NULL_TYPE: std::cout << "null"; break;
+        case Value::NULL_TYPE: printf("null"); break;
     }
 }
 
@@ -101,8 +102,10 @@ private:
     size_t maxRecursionDepth = 65536;
 
     void handleLoadConst(const Bytecode& instr) {
-        if (auto pval = std::get_if<double>(&instr.operand)) {
-            operandStack.push(Value(*pval));
+        if (auto ival = std::get_if<int>(&instr.operand)) {
+            operandStack.push(Value(*ival));
+        } else if (auto dval = std::get_if<double>(&instr.operand)) {
+            operandStack.push(Value(*dval));
         } else if (auto sval = std::get_if<std::string>(&instr.operand)) {
             operandStack.push(Value(*sval));
         } else {
@@ -115,8 +118,8 @@ private:
         Value index = operandStack.top(); operandStack.pop();
         Value list = operandStack.top(); operandStack.pop();
         if (list.type != Value::LIST) throwTypeError("Expected list");
-        if (index.type != Value::NUMBER) throwTypeError("Index must be number");
-        int idx = static_cast<int>(index.numValue);
+        if (index.type != Value::INT) throwTypeError("Index must be integer");
+        int idx = index.intValue;
         if (idx < 0 || idx >= list.listValue.size()) throwIndexError("Index out of range");
         operandStack.push(list.listValue[idx]);
     }
@@ -127,8 +130,8 @@ private:
         Value index = operandStack.top(); operandStack.pop();
         Value list = operandStack.top(); operandStack.pop();
         if (list.type != Value::LIST) throwTypeError("Expected list");
-        if (index.type != Value::NUMBER) throwTypeError("Index must be number");
-        int idx = static_cast<int>(index.numValue);
+        if (index.type != Value::INT) throwTypeError("Index must be integer");
+        int idx = index.intValue;
         if (idx < 0 || idx >= list.listValue.size()) throwIndexError("Index out of range");
         list.listValue[idx] = value;
         operandStack.push(list);
@@ -168,58 +171,84 @@ private:
         Value right = operandStack.top(); operandStack.pop();
         Value left = operandStack.top(); operandStack.pop();
         std::string op = std::get<std::string>(instr.operand);
+
+        auto promoteTypes = [](Value& a, Value& b) {
+            if (a.type == Value::INT && b.type == Value::INT) return;
+            if (a.type == Value::INT) {
+                a.type = Value::DOUBLE;
+                a.doubleValue = a.intValue;
+            }
+            if (b.type == Value::INT) {
+                b.type = Value::DOUBLE;
+                b.doubleValue = b.intValue;
+            }
+        };
+
+        auto performArithmetic = [&](auto op) {
+            if (left.type == Value::INT && right.type == Value::INT) {
+                operandStack.push(Value(op(left.intValue, right.intValue)));
+            } else {
+                promoteTypes(left, right);
+                operandStack.push(Value(op(left.doubleValue, right.doubleValue)));
+            }
+        };
+
+        auto performComparison = [&](auto cmp) {
+            promoteTypes(left, right);
+            bool result = cmp(left.doubleValue, right.doubleValue);
+            operandStack.push(Value(result ? 1 : 0));
+        };
+
         if (op == "+" || op == "-" || op == "*" || op == "/") {
             if (op == "+") {
-                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                    operandStack.push(Value(left.numValue + right.numValue));
-                } else if (left.type == Value::STRING && right.type == Value::STRING) {
+                if (left.type == Value::STRING && right.type == Value::STRING) {
                     operandStack.push(Value(left.strValue + right.strValue));
                 } else {
-                    throwTypeError("Type mismatch in binary operation");
+                    performArithmetic(std::plus<>());
                 }
             } else if (op == "-") {
-                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                    operandStack.push(Value(left.numValue - right.numValue));
-                } else {
-                    throwTypeError("Type mismatch in binary operation");
-                }
+                performArithmetic(std::minus<>());
             } else if (op == "*") {
-                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                    operandStack.push(Value(left.numValue * right.numValue));
-                } else {
-                    throwTypeError("Type mismatch in binary operation");
-                }
-            } else if (op == "/") {
-                if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
-                    if (right.numValue == 0) {
-                        throwZeroDivisionError("Zero division error");
+                if (left.type == Value::STRING && right.type == Value::INT || right.type == Value::STRING && left.type == Value::INT) {
+                    bool flag = left.type == Value::STRING && right.type == Value::INT;
+                    std::string result;
+                    for (int i = 0; i < right.intValue; i++) {
+                        if (flag) result += left.strValue;
+                        else result += right.strValue;
                     }
-                    operandStack.push(Value(left.numValue / right.numValue));
-                } else {
-                    throwTypeError("Type mismatch in binary operation");
+                    operandStack.push(Value(result));
                 }
+                performArithmetic(std::multiplies<>());
+            } else if (op == "/") {
+                performArithmetic(std::divides<>());
             } else {
                 throwRuntimeError("Unknown binary operator: " + op);
             }
         } else if (op == "<" || op == "<=" || op == "==" ||
                   op == "!=" || op == ">" || op == ">=") {
-            bool result;
-            if (op == "<") result = (left.numValue < right.numValue);
-            else if (op == "<=") result = (left.numValue <= right.numValue);
-            else if (op == "==") result = (left.numValue == right.numValue);
-            else if (op == "!=") result = (left.numValue != right.numValue);
-            else if (op == ">") result = (left.numValue > right.numValue);
-            else if (op == ">=") result = (left.numValue >= right.numValue);
-
-            operandStack.push(Value(result ? 1.0 : 0.0));
+            if (op == "<") {
+                performComparison(std::less<>());
+            } else if (op == "<=") {
+                performComparison(std::less_equal<>());
+            } else if (op == "==") {
+                performComparison(std::equal_to<>());
+            } else if (op == "!=") {
+                performComparison(std::not_equal_to<>());
+            } else if (op == ">") {
+                performComparison(std::greater<>());
+            } else if (op == ">=") {
+                performComparison(std::greater_equal<>());
+            } else {
+                throwRuntimeError("Unknown comparison operator: " + op);
+            }
         } else if (op == "[]") {
             if (left.type != Value::LIST) {
                 throwTypeError("Expected list for [] operator");
             }
-            if (right.type != Value::NUMBER) {
-                throwTypeError("Expected number for list index");
+            if (right.type != Value::INT) {
+                throwTypeError("Expected int for list index");
             }
-            int index = static_cast<int>(right.numValue);
+            int index = right.intValue;
             if (index < 0 || index >= left.listValue.size()) {
                 throwIndexError("List index out of range");
             }
@@ -238,7 +267,7 @@ private:
             throwRuntimeError("Stack underflow in jump if false");
         }
         Value cond = operandStack.top(); operandStack.pop();
-        if (cond.numValue == 0.0) {
+        if (cond.intValue == 0) {
             return std::get<int>(instr.operand);
         }
         return pc + 1;
@@ -373,11 +402,9 @@ private:
     }
 
     Value builtinPrint(const std::vector<Value>& args) {
-        for (size_t i = 0; i < args.size(); ++i) {
-            if (i > 0) std::cout << " ";
-            printValue(args[i]);
+        for (const auto & arg : args) {
+            printValue(arg);
         }
-        std::cout << std::endl;
         return Value(Value::NULL_TYPE);
     }
 
@@ -393,10 +420,10 @@ private:
     Value builtinLen(const std::vector<Value>& args) {
         checkArgCount("len", 1, args);
         if (args[0].type == Value::STRING) {
-            return Value(static_cast<double>(args[0].strValue.size()));
+            return Value(args[0].strValue.size());
         }
         if (args[0].type == Value::LIST) {
-            return Value(static_cast<double>(args[0].listValue.size()));
+            return Value(args[0].listValue.size());
         }
         throwTypeError("len() expects string or list");
     }
@@ -404,7 +431,8 @@ private:
     Value builtinType(const std::vector<Value>& args) {
         checkArgCount("type", 1, args);
         switch (args[0].type) {
-            case Value::NUMBER: return Value("number");
+            case Value::INT: return Value("int");
+            case Value::DOUBLE: return Value("double");
             case Value::STRING: return Value("string");
             case Value::LIST: return Value("list");
             case Value::NULL_TYPE: return Value("null");
@@ -414,25 +442,25 @@ private:
 
     Value builtinRange(const std::vector<Value>& args) {
         checkArgCount("range", 2, args);
-        if (args[0].type != Value::NUMBER || args[1].type != Value::NUMBER) {
-            throwTypeError("range() expects numbers");
+        if (args[0].type != Value::INT || args[1].type != Value::INT) {
+            throwTypeError("range() expects integers");
         }
 
         std::vector<Value> list;
-        int start = static_cast<int>(args[0].numValue);
-        int end = static_cast<int>(args[1].numValue);
+        int start = args[0].intValue;
+        int end = args[1].intValue;
         for (int i = start; i < end; ++i) {
-            list.emplace_back(static_cast<double>(i));
+            list.emplace_back(i);
         }
         return Value(list);
     }
 
     Value builtinSleep(const std::vector<Value>& args) {
         checkArgCount("sleep", 1, args);
-        if (args[0].type != Value::NUMBER) {
-            throwTypeError("sleep() expects a number");
+        if (args[0].type != Value::INT) {
+            throwTypeError("sleep() expects a integer");
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(args[0].numValue)));
+        std::this_thread::sleep_for(std::chrono::milliseconds(args[0].intValue));
         return Value(Value::NULL_TYPE);
     }
 
@@ -442,15 +470,15 @@ private:
             throwTypeError("system() expects a string");
         }
         int result = std::system(args[0].strValue.c_str());
-        return Value(static_cast<double>(result));
+        return Value(result);
     }
 
     Value builtinExit(const std::vector<Value>& args) {
         checkArgCount("exit", 1, args);
-        if (args[0].type != Value::NUMBER) {
-            throwTypeError("exit() expects a number");
+        if (args[0].type != Value::INT) {
+            throwTypeError("exit() expects a integer");
         }
-        std::exit(static_cast<int>(args[0].numValue));
+        std::exit(args[0].intValue);
         return Value(Value::NULL_TYPE);
     }
 
@@ -481,7 +509,7 @@ private:
     }
 
     Value builtinTime() {
-        return Value(static_cast<double>(std::time(nullptr)));
+        return Value(std::time(nullptr));
     }
 
     Value listAppend(const std::vector<Value>& args) {

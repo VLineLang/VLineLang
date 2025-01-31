@@ -5,6 +5,7 @@
 #include "bytecode.hpp"
 #include <map>
 #include <vector>
+#include <cmath>
 
 class CodeGen {
 public:
@@ -60,13 +61,13 @@ private:
                 program.push_back({JUMP, createLabel()});
                 size_t endJumpPos = program.size() - 1;
 
-                program[falseJumpPos].operand = static_cast<int>(program.size());
+                program[falseJumpPos].operand = (int)program.size();
                 for (Statement* elseStmt : ifStmt->elseBody) {
                     generateStatement(elseStmt, program);
                 }
-                program[endJumpPos].operand = static_cast<int>(program.size());
+                program[endJumpPos].operand = (int)program.size();
             } else {
-                program[falseJumpPos].operand = static_cast<int>(program.size());
+                program[falseJumpPos].operand = (int)program.size();
             }
         }
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
@@ -140,7 +141,12 @@ private:
 
     void generateExpression(Expression* expr, BytecodeProgram& program) {
         if (auto numLit = dynamic_cast<NumberLiteral*>(expr)) {
-            program.push_back({LOAD_CONST, numLit->value});
+            double val = numLit->value;
+            if (val == floor(val) && val >= INT_MIN && val <= INT_MAX) {
+                program.push_back({LOAD_CONST, static_cast<int>(val)});
+            } else {
+                program.push_back({LOAD_CONST, val});
+            }
         }
         else if (auto strLit = dynamic_cast<StringLiteral*>(expr)) {
             program.push_back({LOAD_CONST, strLit->value});
