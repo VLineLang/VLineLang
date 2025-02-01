@@ -20,8 +20,6 @@ A modern, clean, fast and powerful high-level programming language.
 ### Functions
 
 - **Member Functions**:
-    - `list.size()`: Returns the length of the list.
-    - `list.empty()`: Checks if the list is empty.
     - `list.append(value)`: Appends an element to the end of the list.
     - `list.insert(index, value)`: Inserts an element at the specified position.
     - `list.erase(begin, end)`: Deletes elements within the specified range in the list.
@@ -38,7 +36,6 @@ A modern, clean, fast and powerful high-level programming language.
     - `exit(code)`: Exits the program and returns the specified status code.
     - `read(filename)`: Reads the contents of a file.
     - `write(filename, content)`: Writes content to a file.
-    - `import(filename)`: Imports and executes an external file.
 
 ### Keywords
 

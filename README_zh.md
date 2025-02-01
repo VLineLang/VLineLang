@@ -20,8 +20,6 @@
 ### 函数
 
 - **成员函数**：
-    - `list.size()`：返回列表的长度。
-    - `list.empty()`：检查列表是否为空。
     - `list.append(value)`：向列表末尾添加一个元素。
     - `list.insert(index, value)`：在指定位置插入一个元素。
     - `list.erase(begin, end)`：删除列表中指定范围的元素。
@@ -38,7 +36,6 @@
     - `exit(code)`：退出程序并返回指定的状态码。
     - `read(filename)`：读取文件内容。
     - `write(filename, content)`：将内容写入文件。
-    - `import(filename)`：导入并执行外部文件。
 
 ### 关键字
 
