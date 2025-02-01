@@ -185,7 +185,7 @@ private:
                 generateExpression(arg, program);
             }
             program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member)}});
-            if (funcCall->name == "append" || funcCall->name == "erase") {   // 处理内置列表函数
+            if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {   // 处理内置列表函数
                 program.push_back({STORE_VAR, varName});
             }
         }

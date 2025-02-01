@@ -329,6 +329,8 @@ private:
             return listAppend(args);
         } else if (name == "erase") {
             return listErase(args);
+        } else if (name == "insert") {
+            return listInsert(args);
         } else {
             throwIdentifierError("Undefined builtin function: " + name);
         }
@@ -462,6 +464,24 @@ private:
 
         Value listCopy = args[0];
         listCopy.listValue.push_back(args[1]);
+        return listCopy;
+    }
+
+    Value listInsert(const std::vector<Value>& args) {
+        checkArgCount("list.insert", 3, args);
+        if (args[0].type!= Value::LIST) {
+            throwTypeError("list.insert() expects a list");
+        }
+        if (args[1].type!= Value::NUMBER || args[2].type!= Value::NUMBER) {
+            throwTypeError("list.insert() expects two numbers");
+        }
+        Value listCopy = args[0];
+        BigNum index = args[1].bignumValue;
+        const Value& value = args[2];
+        if (index < 0 || index > listCopy.listValue.size()) {
+            throwIndexError("list.insert() index out of range");
+        }
+        listCopy.listValue.insert(listCopy.listValue.begin() + index.get_ll(), value);
         return listCopy;
     }
 
