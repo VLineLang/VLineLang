@@ -226,14 +226,6 @@ public:
     bool operator<=(const BigNum& rhs) const { return !(rhs < *this); }
     bool operator>=(const BigNum& rhs) const { return !(*this < rhs); }
 
-
-    int compare(const BigNum& rhs) const {
-        if (*this < rhs) return -1;
-        if (*this > rhs) return 1;
-        return 0;
-    }
-
-
     BigNum operator+(const BigNum& rhs) const {
         if (is_negative != rhs.is_negative) {
             BigNum tmp = rhs;
@@ -416,22 +408,10 @@ public:
             result.integer.push_back(0);
         }
 
+        reverse(result.decimal.begin(), result.decimal.end());
+
         result.normalize();
         return result;
-    }
-
-
-    std::string int_to_str(__int128 num) {
-        std::string res;
-        bool neg = num < 0;
-        if (neg) num = -num;
-        do {
-            res += static_cast<char>(num % 10 + '0');
-            num /= 10;
-        } while (num);
-        if (neg) res += '-';
-        std::reverse(res.begin(), res.end());
-        return res;
     }
 
     BigNum operator/(const BigNum& rhs) const {
@@ -467,7 +447,7 @@ public:
             }
         }
 
-        for (int i = 0; i < DECIMAL_LIMIT - static_cast<int>(quotient.decimal.size()); ++i) {
+        for (int i = 0; i < DECIMAL_LIMIT; ++i) {
             remainder = remainder * BigNum(10);
             int digit = 0;
             while (remainder >= divisor) {
