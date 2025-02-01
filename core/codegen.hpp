@@ -109,13 +109,11 @@ private:
             functions[funcDecl->name] = funcDecl;
             BytecodeProgram funcProgram;
 
-
             inFunction = true;
             for (Statement* bodyStmt : funcDecl->body) {
                 generateStatement(bodyStmt, funcProgram);
             }
             inFunction = false;
-
 
             if (funcProgram.empty() || funcProgram.back().op != RETURN) {
                 funcProgram.push_back({LOAD_CONST, 0.0});
@@ -124,7 +122,6 @@ private:
             funcDecl->bytecode = funcProgram;
         }
         else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
-
             if (!inFunction) {
                 throwSyntaxError("'return' outside function");
             }
@@ -176,10 +173,21 @@ private:
             }
         }
         else if (auto funcCall = dynamic_cast<FunctionCall*>(expr)) {
+            bool flag_of_member = funcCall->name.find('.') != std::string::npos;
+            std::string varName;
+            if (flag_of_member) {
+                varName = funcCall->name.substr(0, funcCall->name.find('.'));
+                Expression * object = new Identifier(varName);
+                generateExpression(object, program);
+                funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
+            }
             for (auto arg : funcCall->arguments) {
                 generateExpression(arg, program);
             }
-            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, static_cast<int>(funcCall->arguments.size())}});
+            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member)}});
+            if (funcCall->name == "append" || funcCall->name == "erase") {   // 处理内置列表函数
+                program.push_back({STORE_VAR, varName});
+            }
         }
     }
 

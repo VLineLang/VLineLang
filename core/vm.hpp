@@ -53,10 +53,6 @@ public:
     std::stack<Value> operandStack;
     std::map<std::string, FunctionDeclaration*> functions;
 
-    void setDepthLimit(size_t depth) {
-        maxRecursionDepth = depth;
-    }
-
     Value execute() {
         if (frames.empty()) {
             return Value();
@@ -98,8 +94,6 @@ public:
     }
 
 private:
-    size_t maxRecursionDepth = 65536;
-
     void handleLoadConst(const Bytecode& instr) {
         if (auto ival = std::get_if<BigNum>(&instr.operand)) {
             operandStack.push(Value(*ival));
@@ -292,14 +286,12 @@ private:
                                std::to_string(args.size()));
             }
 
-
             Frame newFrame(func->bytecode, &frames.top());
 
             for (size_t i = 0; i < func->parameters.size(); ++i) {
                 newFrame.locals[func->parameters[i]] = args[i];
             }
             frames.push(newFrame);
-
 
             result = execute();
             frames.pop();
@@ -310,7 +302,7 @@ private:
         operandStack.push(result);
     }
 
-    Value callBuiltinFunction(const std::string& name, const std::vector<Value>& args) {
+    Value callBuiltinFunction(const std::string& name, std::vector<Value> args) {
         if (name == "print") {
             return builtinPrint(args);
         } else if (name == "input") {
@@ -333,8 +325,10 @@ private:
             return builtinWrite(args);
         } else if (name == "time") {
             return builtinTime();
-        } else if (name == "list.append") {
+        } else if (name == "append") {
             return listAppend(args);
+        } else if (name == "erase") {
+            return listErase(args);
         } else {
             throwIdentifierError("Undefined builtin function: " + name);
         }
@@ -468,6 +462,24 @@ private:
 
         Value listCopy = args[0];
         listCopy.listValue.push_back(args[1]);
+        return listCopy;
+    }
+
+    Value listErase(const std::vector<Value>& args) {
+        checkArgCount("list.erase", 3, args);
+        if (args[0].type!= Value::LIST) {
+            throwTypeError("list.erase() expects a list");
+        }
+        if (args[1].type != Value::NUMBER || args[2].type != Value::NUMBER) {
+            throwTypeError("list.erase() expects two numbers");
+        }
+        Value listCopy = args[0];
+        BigNum start = args[1].bignumValue;
+        BigNum end = args[2].bignumValue;
+        if (start < 0 || start >= listCopy.listValue.size() || end < 0 || end > listCopy.listValue.size()) {
+            throwIndexError("list.erase() index out of range");
+        }
+        listCopy.listValue.erase(listCopy.listValue.begin() + start.get_ll(), listCopy.listValue.begin() + end.get_ll());
         return listCopy;
     }
 

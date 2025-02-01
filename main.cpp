@@ -2,8 +2,6 @@
 
 bool flag = false;
 std::string filename;
-long long maxDepth = -1;
-
 std::vector<Token> tokens;
 std::vector<Statement*> statements;
 VM globalVM;
@@ -83,14 +81,6 @@ signed main(int argc, char *argv[]) {
                     else {
                         char* fn = argv[i + 1];
                         freopen(fn, "r", stdin);
-                        used[i + 1] = true;
-                    }
-                }
-                if (op == "depth") {
-                    if (i + 1 >= argc) throw std::runtime_error("Can't set max depth (empty value)");
-                    else {
-                        maxDepth = std::atoi(argv[i + 1]);
-                        if (maxDepth > 0) globalVM.setDepthLimit(maxDepth);
                         used[i + 1] = true;
                     }
                 }

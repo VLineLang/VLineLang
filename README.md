@@ -87,9 +87,6 @@ A modern, clean, fast and powerful high-level programming language.
     - Supports importing external files via `import`.
     - Supports modular programming.
 
-- **Recursion Depth Control**:
-    - Controls recursion depth via the `--depth` parameter to prevent stack overflow.
-
 ## 🛠️ Quick Start
 
 ### Installation
@@ -135,7 +132,6 @@ You can run VLineLang code in the following ways:
 3. **Command Line Arguments**:
     - `--in <filename>`: Reads input from the specified file.
     - `--out <filename>`: Redirects output to the specified file.
-    - `--depth <value>`: Sets the recursion depth limit.
 
 ## 📝 Language Syntax
 
