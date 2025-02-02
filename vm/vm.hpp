@@ -30,6 +30,85 @@ public:
     std::stack<Value> operandStack;
     std::map<std::string, FunctionDeclaration*> functions;
 
+//    void printFrameStack() {
+//        std::stack<Frame> tempFrames = frames;
+//        int frameIndex = tempFrames.size() - 1;
+//
+//        while (!tempFrames.empty()) {
+//            const Frame& frame = tempFrames.top();
+//            std::cout << "Frame " << frameIndex << ":" << std::endl;
+//
+//            // 打印本地变量
+//            std::cout << "  Locals:" << std::endl;
+//            if (frame.locals.empty()) {
+//                std::cout << "    <empty>" << std::endl;
+//            } else {
+//                for (const auto& pair : frame.locals) {
+//                    std::cout << "    " << pair.first << std::endl;
+//                    // 这里可以根据 Value 类型进一步打印详细信息
+//                }
+//            }
+//
+//            // 打印父帧信息
+//            std::cout << "  Parent Frame: ";
+//            if (frame.parent == nullptr) {
+//                std::cout << "<none>" << std::endl;
+//            } else {
+//                // 可以添加更详细的父帧信息打印
+//                std::cout << "<parent>" << std::endl;
+//            }
+//
+//            // 打印程序代码
+//            std::cout << "  Program:" << std::endl;
+//            for (size_t i = 0; i < frame.program.size(); ++i) {
+//                const Bytecode& instr = frame.program[i];
+//                std::cout << "    " << std::setw(4) << i << ": ";
+//                switch (instr.op) {
+//                    case LOAD_CONST: std::cout << "LOAD_CONST"; break;
+//                    case LOAD_VAR: std::cout << "LOAD_VAR"; break;
+//                    case STORE_VAR: std::cout << "STORE_VAR"; break;
+//                    case BINARY_OP: std::cout << "BINARY_OP"; break;
+//                    case JUMP: std::cout << "JUMP"; break;
+//                    case JUMP_IF_FALSE: std::cout << "JUMP_IF_FALSE"; break;
+//                    case CALL_FUNCTION: std::cout << "CALL_FUNCTION"; break;
+//                    case BUILD_LIST: std::cout << "BUILD_LIST"; break;
+//                    case GET_ITER: std::cout << "GET_ITER"; break;
+//                    case FOR_ITER: std::cout << "FOR_ITER"; break;
+//                    case POP: std::cout << "POP"; break;
+//                    case RETURN: std::cout << "RETURN"; break;
+//                    case LOAD_SUBSCRIPT: std::cout << "LOAD_SUBSCRIPT"; break;
+//                    case STORE_SUBSCRIPT: std::cout << "STORE_SUBSCRIPT"; break;
+//                    case CREATE_OBJECT: std::cout << "CREATE_OBJECT"; break;
+//                    case LOAD_MEMBER: std::cout << "LOAD_MEMBER"; break;
+//                    case STORE_MEMBER: std::cout << "STORE_MEMBER"; break;
+//                    default: std::cout << "Unknown opcode"; break;
+//                }
+//                std::cout << std::endl;
+//            }
+//
+//            // 打印程序计数器位置
+//            std::cout << "  PC: " << frame.pc << std::endl;
+//
+//            tempFrames.pop();
+//            frameIndex--;
+//        }
+//
+//        std::cout << "Operand Stack:" << std::endl;
+//        std::stack<Value> tempOperandStack = operandStack;
+//        if (tempOperandStack.empty()) {
+//            std::cout << "  <empty>" << std::endl;
+//        } else {
+//            std::vector<Value> stackValues;
+//            while (!tempOperandStack.empty()) {
+//                stackValues.push_back(tempOperandStack.top());
+//                tempOperandStack.pop();
+//            }
+//            for (auto it = stackValues.rbegin(); it != stackValues.rend(); ++it) {
+//                std::cout << "  "; printValue(*it); cout << std::endl;
+//            }
+//        }
+//    }
+
     Value execute() {
         if (frames.empty()) {
             return Value();
@@ -39,6 +118,8 @@ public:
 
         while (currentFrame.pc < currentFrame.program.size()) {
             const Bytecode& instr = currentFrame.program[currentFrame.pc];
+
+//            printFrameStack();
 
             try {
                 switch (instr.op) {
@@ -56,6 +137,45 @@ public:
                     case RETURN: handleReturn(currentFrame); break;
                     case LOAD_SUBSCRIPT: handleLoadSubscript(); break;
                     case STORE_SUBSCRIPT: handleStoreSubscript(); break;
+                    case CREATE_OBJECT: {
+                        Value obj;
+                        obj.type = Value::OBJECT;
+                        obj.objectMembers = {}; // 初始化空成员表
+                        operandStack.push(obj);
+                        break;
+                    }
+
+                    case STORE_MEMBER: {
+                        std::string member = std::get<std::string>(instr.operand);
+                        if (operandStack.size() < 2) {
+                            throwRuntimeError("Stack underflow in STORE_MEMBER");
+                        }
+                        Value obj = operandStack.top();  // 对象引用
+                        operandStack.pop();
+                        Value value = operandStack.top(); // 成员值
+                        operandStack.pop();
+                        if (obj.type != Value::OBJECT) {
+                            throwTypeError("Cannot store member on non-object");
+                        }
+                        obj.objectMembers[member] = value; // 存储成员
+                        operandStack.push(obj);
+                        break;
+                    }
+
+                    case LOAD_MEMBER: {
+                        std::string member = std::get<std::string>(instr.operand);
+                        Value obj = operandStack.top();
+                        operandStack.pop();
+
+                        if (obj.type != Value::OBJECT) {
+                            throwTypeError("Cannot access member of non-object");
+                        }
+                        if (obj.objectMembers.find(member) == obj.objectMembers.end()) {
+                            throwIdentifierError("Undefined member: " + member);
+                        }
+                        operandStack.push(obj.objectMembers[member]);
+                        break;
+                    }
                     default: throwRuntimeError("Unknown bytecode instruction");
                 }
                 currentFrame.pc++;

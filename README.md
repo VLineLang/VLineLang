@@ -174,7 +174,7 @@ print(fact(5))  // Outputs 120
 ## TODO List
 
 - [x] for loops
-- [ ] classes
+- [x] classes
 - [ ] exception handling
 - [ ] standard library support
 - [ ] performance optimization

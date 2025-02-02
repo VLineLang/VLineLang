@@ -4,6 +4,7 @@
 #include "../ast/ast.hpp"
 #include "bytecode.hpp"
 #include <map>
+#include <utility>
 #include <vector>
 #include <cmath>
 
@@ -25,12 +26,21 @@ public:
         return functions;
     }
 
+    std::map<std::string, ClassDeclaration*> getClasses() const {
+        return classes;
+    }
+
+    CodeGen(std::map<std::string, ClassDeclaration*> cls) {
+        classes = cls;
+    }
+
 private:
     bool isReplMode = false;
     bool inFunction = false;
     std::map<std::string, FunctionDeclaration*> functions;
     std::map<std::string, int> variables;
     std::map<std::string, int> labels;
+    std::map<std::string, ClassDeclaration*> classes;
     int labelCounter = 0;
 
     int tempVarCounter = 0;
@@ -134,6 +144,15 @@ private:
                 program.push_back({POP, 0});
             }
         }
+        else if (auto cls = dynamic_cast<ClassDeclaration*>(stmt)) {
+            classes[cls->className] = cls;
+        }
+        else if (auto classMemberAssign = dynamic_cast<ClassMemberAssignment*>(stmt)) {
+            generateExpression(classMemberAssign->value, program);
+            program.push_back({LOAD_VAR, classMemberAssign->className});
+            program.push_back({STORE_MEMBER, classMemberAssign->memberName});
+            program.push_back({STORE_VAR, classMemberAssign->className});
+        }
     }
 
     void generateExpression(Expression* expr, BytecodeProgram& program) {
@@ -153,10 +172,10 @@ private:
             program.push_back({LOAD_VAR, id->name});
         }
         else if (auto binExpr = dynamic_cast<BinaryExpression*>(expr)) {
-            if (binExpr->op == "[]") { // 处理下标访问
-                generateExpression(binExpr->left, program);  // 加载列表
-                generateExpression(binExpr->right, program); // 加载索引
-                program.push_back({LOAD_SUBSCRIPT});         // 生成加载下标指令
+            if (binExpr->op == "[]") {
+                generateExpression(binExpr->left, program);
+                generateExpression(binExpr->right, program);
+                program.push_back({LOAD_SUBSCRIPT});
             } else {
                 handleBinaryOp(binExpr, program);
             }
@@ -185,9 +204,34 @@ private:
                 generateExpression(arg, program);
             }
             program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member)}});
-            if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {   // 处理内置列表函数
+            if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {
                 program.push_back({STORE_VAR, varName});
             }
+        }
+        else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
+
+            program.push_back({CREATE_OBJECT});
+
+
+            if (classes.find(newExpr->className) != classes.end()) {
+                ClassDeclaration* cls = classes[newExpr->className];
+                std::string tempVar = "__obj_" + std::to_string(tempVarCounter++);
+
+                program.push_back({STORE_VAR, tempVar});
+
+
+                for (auto member : cls->members) {
+                    if (auto assign = dynamic_cast<Assignment*>(member)) {
+                        generateExpression(assign->value, program);
+                        program.push_back({LOAD_VAR, tempVar});
+                        program.push_back({STORE_MEMBER, assign->target});
+                    }
+                }
+            }
+        }
+        else if (auto access = dynamic_cast<MemberAccess*>(expr)) {
+            generateExpression(access->object, program);
+            program.push_back({LOAD_MEMBER, access->member});
         }
     }
 

@@ -20,7 +20,10 @@ enum BytecodeOp {
     FOR_ITER,       // 迭代控制
     POP,           // 弹出栈顶元素
     LOAD_SUBSCRIPT,   // 加载列表元素
-    STORE_SUBSCRIPT   // 存储到列表元素
+    STORE_SUBSCRIPT,   // 存储到列表元素
+    CREATE_OBJECT,
+    LOAD_MEMBER,
+    STORE_MEMBER
 };
 
 enum CompareOp {

@@ -1,8 +1,8 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#define VLINE_VERSION "0.5.4-alpha.1"
-#define VLINE_PUBLISH "Feb. 1st, 2025"
+#define VLINE_VERSION "0.7.0-alpha.1"
+#define VLINE_PUBLISH "Feb. 2nd, 2025"
 #define VLINE_COMPILER "GNU GCC/ISO C++17"
 
 #include <string>
@@ -29,6 +29,16 @@ void printValue(const Value& value) {
                 if (i < value.listValue.size() - 1) printf(", ");
             }
             printf("]");
+            break;
+        }
+        case Value::OBJECT: {
+            printf("{");
+            for (auto& ObjMem : value.objectMembers) {
+                printf("%s: ", ObjMem.first.c_str());
+                printValue(ObjMem.second);
+                printf(", ");
+            }
+            printf("}");
             break;
         }
         case Value::NULL_TYPE: printf("null"); break;
