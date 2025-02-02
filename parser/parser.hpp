@@ -1,8 +1,8 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include "token.hpp"
-#include "ast.hpp"
+#include "../lexer/token.hpp"
+#include "../ast/ast.hpp"
 #include "errors.hpp"
 #include <vector>
 
@@ -43,6 +43,15 @@ private:
             }
         } else if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_OPERATOR && peek(1).value == "=") {
             return assignment();
+        } else if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_OPERATOR && peek(1).value == ".") {
+            size_t savedPos = position;
+            try {
+                return classMemberAssignment();
+            } catch (const std::runtime_error& e) {
+                position = savedPos;
+                Expression* expr = expression();
+                return new ExpressionStatement(expr);
+            }
         } else if (token.type == TOKEN_KEYWORD && token.value == "if") {
             return ifStatement();
         } else if (token.type == TOKEN_KEYWORD && token.value == "while") {
@@ -59,10 +68,33 @@ private:
             return new ContinueStatement();
         } else if (token.type == TOKEN_KEYWORD && token.value == "for") {
             return forStatement();
+        } else if (token.type == TOKEN_KEYWORD && token.value == "class") {
+            return classDeclaration();
         } else {
             Expression* expr = expression();
             return new ExpressionStatement(expr);
         }
+    }
+
+
+
+    ClassDeclaration* classDeclaration() {
+        consume();
+        Token name = peek();
+        consume();
+        consume();
+
+        std::vector<Statement*> members;
+        while (peek().value != "}") {
+
+            if (auto stmt = dynamic_cast<Assignment*>(statement())) {
+                members.push_back(stmt);
+            } else {
+                throwSyntaxError("Unsupported statement in class declaration");
+            }
+        }
+        consume();
+        return new ClassDeclaration(name.value, members);
     }
 
     Assignment* subscriptAssignment() {
@@ -80,6 +112,20 @@ private:
         consume();
         Expression* value = expression();
         return new Assignment(target.value, index, value);
+    }
+
+    ClassMemberAssignment* classMemberAssignment() {
+        Token target = peek();
+        consume();
+        consume();
+        std::string member = peek().value;
+        consume();
+        if (peek().type != TOKEN_OPERATOR || peek().value != "=") {
+            throwSyntaxError("Expected '=' after member name");
+        }
+        consume();
+        Expression* value = expression();
+        return new ClassMemberAssignment(target.value, member, value);
     }
 
     Assignment* assignment() {
@@ -277,7 +323,7 @@ private:
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
-            return new NumberLiteral(std::stod(token.value));
+            return new NumberLiteral(BigNum(token.value));
         } else if (token.type == TOKEN_OPERATOR && token.value == "-") {
             consume();
             Expression* expr = factor();
@@ -295,17 +341,17 @@ private:
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
-            return new NumberLiteral(std::stod(token.value));
+            return new NumberLiteral(BigNum(token.value));
         } else if (token.type == TOKEN_STRING) {
             consume();
             return new StringLiteral(token.value);
         } else if (token.type == TOKEN_KEYWORD && (token.value == "true" || token.value == "false")) {
             if (token.value == "true") {
                 consume();
-                return new NumberLiteral(1.0);
+                return new NumberLiteral(BigNum(1));
             } else if (token.value == "false") {
                 consume();
-                return new NumberLiteral(0.0);
+                return new NumberLiteral(BigNum(0));
             }
         } else if (token.type == TOKEN_KEYWORD && token.value == "null") {
             consume();
@@ -316,7 +362,13 @@ private:
             return new UnaryExpression("not", expr);
         } else if (token.type == TOKEN_IDENTIFIER) {
             consume();
-            if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
+            if (peek().value == ".") {
+                consume();
+                Token member = peek();
+                if (member.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected member name");
+                consume();
+                return new MemberAccess(new Identifier(token.value), member.value);
+            } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
                 consume();
                 std::vector<Expression*> args;
                 while (true) {
@@ -386,6 +438,12 @@ private:
             }
             consume();
             return new ListLiteral(elements);
+        } else if (token.type == TOKEN_KEYWORD && token.value == "new") {
+            consume();
+            Token className = peek();
+            if (className.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected class name after new");
+            consume();
+            return new NewExpression(className.value);
         } else {
             throwSyntaxError("Unexpected token in primary expression: " + token.value);
         }

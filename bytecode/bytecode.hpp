@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <variant>
+#include "../vm/bignum.hpp"
 
 enum BytecodeOp {
     LOAD_CONST,    // 加载常量值（数值/字符串）
@@ -19,7 +20,10 @@ enum BytecodeOp {
     FOR_ITER,       // 迭代控制
     POP,           // 弹出栈顶元素
     LOAD_SUBSCRIPT,   // 加载列表元素
-    STORE_SUBSCRIPT   // 存储到列表元素
+    STORE_SUBSCRIPT,   // 存储到列表元素
+    CREATE_OBJECT,
+    LOAD_MEMBER,
+    STORE_MEMBER
 };
 
 enum CompareOp {
@@ -38,7 +42,7 @@ struct CallFunctionOperand {
 
 struct Bytecode {
     BytecodeOp op;
-    std::variant<double, std::string, int, CompareOp, CallFunctionOperand> operand;
+    std::variant<BigNum, std::string, CompareOp, CallFunctionOperand> operand;
 };
 
 using BytecodeProgram = std::vector<Bytecode>;

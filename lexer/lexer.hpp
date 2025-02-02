@@ -2,7 +2,7 @@
 #define LEXER_HPP
 
 #include "token.hpp"
-#include "errors.hpp"
+#include "../parser/errors.hpp"
 #include <string>
 #include <vector>
 #include <cctype>
@@ -21,7 +21,7 @@ public:
                 skipSingleLineComment();
             } else if (current == '/' && peek(1) == '*') {
                 skipMultiLineComment();
-            } else if (std::isalpha(current)) {
+            } else if (std::isalpha(current) || current == '_') {
                 tokens.push_back(identifier());
             } else if (std::isdigit(current)) {
                 tokens.push_back(number());
@@ -88,7 +88,7 @@ private:
             value == "return" || value == "true" || value == "false" ||
             value == "and" || value == "or" || value == "not" || value == "else" ||
             value == "break" || value == "continue" || value == "null" ||
-            value == "for" || value == "in") {
+            value == "for" || value == "in" || value == "class" || value == "new") {
             return {TOKEN_KEYWORD, value};
         }
         return {TOKEN_IDENTIFIER, value};
@@ -97,7 +97,7 @@ private:
     Token number() {
         std::string value;
         bool hasDot = false;
-        while (std::isdigit(peek()) || (peek() == '.' && !hasDot)) {
+        while (std::isdigit(peek()) || (peek() == '.' && !hasDot) || (peek() == 'e') || (peek() == 'E')) {
             if (peek() == '.') {
                 hasDot = true;
             }
