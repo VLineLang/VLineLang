@@ -9,10 +9,11 @@
 
 class Lexer {
 public:
-    Lexer(const std::string& source) : source(source), position(0) {}
+    Lexer(const std::string &source) : source(source), position(0) {
+    }
 
-    std::vector<Token> tokenize() {
-        std::vector<Token> tokens;
+    void tokenize(std::vector<Token> *tokens) {
+        std::vector<Token>().swap(*tokens);
         while (position < source.length()) {
             char current = peek();
             if (std::isspace(current)) {
@@ -22,24 +23,23 @@ public:
             } else if (current == '/' && peek(1) == '*') {
                 skipMultiLineComment();
             } else if (std::isalpha(current) || current == '_') {
-                tokens.push_back(identifier());
+                tokens->push_back(identifier());
             } else if (std::isdigit(current)) {
-                tokens.push_back(number());
+                tokens->push_back(number());
             } else if (current == '"') {
-                tokens.push_back(string());
+                tokens->push_back(string());
             } else if (current == '.' || current == '=' || current == '+' ||
                        current == '*' || current == '/' || current == '<' ||
                        current == '>' || current == '!' || current == '-') {
-                tokens.push_back(operator_());
+                tokens->push_back(operator_());
             } else if (current == '(' || current == ')' || current == '{' ||
                        current == '}' || current == ',' || current == '[' || current == ']') {
-                tokens.push_back(punctuation());
+                tokens->push_back(punctuation());
             } else {
                 throwSyntaxError("Unexpected character: " + std::string(1, current));
             }
         }
-        tokens.push_back({TOKEN_EOF, ""});
-        return tokens;
+        tokens->push_back({TOKEN_EOF, ""});
     }
 
 private:

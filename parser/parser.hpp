@@ -8,14 +8,14 @@
 
 class Parser {
 public:
-    Parser(const std::vector<Token>& tokens) : tokens(tokens), position(0) {}
+    Parser(const std::vector<Token> &tokens) : tokens(tokens), position(0) {
+    }
 
-    std::vector<Statement*> parse() {
-        std::vector<Statement*> statements;
+    void parse(std::vector<Statement *> *statements) {
+        std::vector<Statement *>().swap(*statements);
         while (peek().type != TOKEN_EOF) {
-            statements.push_back(statement());
+            statements->push_back(statement());
         }
-        return statements;
     }
 
 private:
@@ -30,15 +30,15 @@ private:
         position++;
     }
 
-    Statement* statement() {
+    Statement *statement() {
         Token token = peek();
         if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_PUNCTUATION && peek(1).value == "[") {
             size_t savedPos = position;
             try {
                 return subscriptAssignment();
-            } catch (const std::runtime_error& e) {
+            } catch (const std::runtime_error &e) {
                 position = savedPos;
-                Expression* expr = expression();
+                Expression *expr = expression();
                 return new ExpressionStatement(expr);
             }
         } else if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_OPERATOR && peek(1).value == "=") {
@@ -47,9 +47,9 @@ private:
             size_t savedPos = position;
             try {
                 return classMemberAssignment();
-            } catch (const std::runtime_error& e) {
+            } catch (const std::runtime_error &e) {
                 position = savedPos;
-                Expression* expr = expression();
+                Expression *expr = expression();
                 return new ExpressionStatement(expr);
             }
         } else if (token.type == TOKEN_KEYWORD && token.value == "if") {
@@ -71,23 +71,21 @@ private:
         } else if (token.type == TOKEN_KEYWORD && token.value == "class") {
             return classDeclaration();
         } else {
-            Expression* expr = expression();
+            Expression *expr = expression();
             return new ExpressionStatement(expr);
         }
     }
 
 
-
-    ClassDeclaration* classDeclaration() {
+    ClassDeclaration *classDeclaration() {
         consume();
         Token name = peek();
         consume();
         consume();
 
-        std::vector<Statement*> members;
+        std::vector<Statement *> members;
         while (peek().value != "}") {
-
-            if (auto stmt = dynamic_cast<Assignment*>(statement())) {
+            if (auto stmt = dynamic_cast<Assignment *>(statement())) {
                 members.push_back(stmt);
             } else {
                 throwSyntaxError("Unsupported statement in class declaration");
@@ -97,11 +95,11 @@ private:
         return new ClassDeclaration(name.value, members);
     }
 
-    Assignment* subscriptAssignment() {
+    Assignment *subscriptAssignment() {
         Token target = peek();
         consume();
         consume();
-        Expression* index = expression();
+        Expression *index = expression();
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
             throwSyntaxError("Expected ']' after list index");
         }
@@ -110,11 +108,11 @@ private:
             throwSyntaxError("Expected '=' after list index");
         }
         consume();
-        Expression* value = expression();
+        Expression *value = expression();
         return new Assignment(target.value, index, value);
     }
 
-    ClassMemberAssignment* classMemberAssignment() {
+    ClassMemberAssignment *classMemberAssignment() {
         Token target = peek();
         consume();
         consume();
@@ -124,34 +122,34 @@ private:
             throwSyntaxError("Expected '=' after member name");
         }
         consume();
-        Expression* value = expression();
+        Expression *value = expression();
         return new ClassMemberAssignment(target.value, member, value);
     }
 
-    Assignment* assignment() {
+    Assignment *assignment() {
         Token target = peek();
         consume();
         consume();
-        Expression* value = expression();
+        Expression *value = expression();
         return new Assignment(target.value, value);
     }
 
-    IfStatement* ifStatement() {
+    IfStatement *ifStatement() {
         consume();
-        Expression* condition = expression();
+        Expression *condition = expression();
 
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
             throwSyntaxError("Expected '{' after if condition");
         }
         consume();
 
-        std::vector<Statement*> body;
+        std::vector<Statement *> body;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
             body.push_back(statement());
         }
         consume();
 
-        std::vector<Statement*> elseBody;
+        std::vector<Statement *> elseBody;
         if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
             consume();
             if (peek().type == TOKEN_PUNCTUATION && peek().value == "{") {
@@ -168,7 +166,7 @@ private:
         return new IfStatement(condition, body, elseBody);
     }
 
-    ForStatement* forStatement() {
+    ForStatement *forStatement() {
         consume();
 
 
@@ -185,7 +183,7 @@ private:
         consume();
 
 
-        Expression* iterable = expression();
+        Expression *iterable = expression();
 
 
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
@@ -193,7 +191,7 @@ private:
         }
         consume();
 
-        std::vector<Statement*> body;
+        std::vector<Statement *> body;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
             body.push_back(statement());
         }
@@ -202,14 +200,14 @@ private:
         return new ForStatement(varName, iterable, body);
     }
 
-    WhileStatement* whileStatement() {
+    WhileStatement *whileStatement() {
         consume();
-        Expression* condition = expression();
+        Expression *condition = expression();
         if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
             throwSyntaxError("Expected '{' after while condition");
         }
         consume();
-        std::vector<Statement*> body;
+        std::vector<Statement *> body;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
             body.push_back(statement());
         }
@@ -217,7 +215,7 @@ private:
         return new WhileStatement(condition, body);
     }
 
-    FunctionDeclaration* functionDeclaration() {
+    FunctionDeclaration *functionDeclaration() {
         consume();
         Token name = peek();
         consume();
@@ -232,7 +230,7 @@ private:
         }
         consume();
         consume();
-        std::vector<Statement*> body;
+        std::vector<Statement *> body;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
             body.push_back(statement());
         }
@@ -240,104 +238,104 @@ private:
         return new FunctionDeclaration(name.value, parameters, body);
     }
 
-    ReturnStatement* returnStatement() {
+    ReturnStatement *returnStatement() {
         consume();
-        Expression* value = expression();
+        Expression *value = expression();
         return new ReturnStatement(value);
     }
 
-    Expression* expression() {
+    Expression *expression() {
         return logical_or_expression();
     }
 
-    Expression* logical_or_expression() {
-        Expression* left = logical_and_expression();
+    Expression *logical_or_expression() {
+        Expression *left = logical_and_expression();
         while (peek().type == TOKEN_KEYWORD && peek().value == "or") {
             Token op = peek();
             consume();
-            Expression* right = logical_and_expression();
+            Expression *right = logical_and_expression();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* logical_and_expression() {
-        Expression* left = equality_expression();
+    Expression *logical_and_expression() {
+        Expression *left = equality_expression();
         while (peek().type == TOKEN_KEYWORD && peek().value == "and") {
             Token op = peek();
             consume();
-            Expression* right = equality_expression();
+            Expression *right = equality_expression();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* equality_expression() {
-        Expression* left = comparison_expression();
+    Expression *equality_expression() {
+        Expression *left = comparison_expression();
         while (peek().type == TOKEN_OPERATOR && (peek().value == "==" || peek().value == "!=")) {
             Token op = peek();
             consume();
-            Expression* right = comparison_expression();
+            Expression *right = comparison_expression();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* comparison_expression() {
-        Expression* left = arithmetic_expression();
+    Expression *comparison_expression() {
+        Expression *left = arithmetic_expression();
         while (peek().type == TOKEN_OPERATOR &&
                (peek().value == "<" || peek().value == "<=" ||
                 peek().value == ">" || peek().value == ">=" ||
                 peek().value == "==" || peek().value == "!=")) {
             Token op = peek();
             consume();
-            Expression* right = arithmetic_expression();
+            Expression *right = arithmetic_expression();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* arithmetic_expression() {
-        Expression* left = term();
+    Expression *arithmetic_expression() {
+        Expression *left = term();
         while (peek().type == TOKEN_OPERATOR && (peek().value == "+" || peek().value == "-")) {
             Token op = peek();
             consume();
-            Expression* right = term();
+            Expression *right = term();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* term() {
-        Expression* left = factor();
+    Expression *term() {
+        Expression *left = factor();
         while (peek().type == TOKEN_OPERATOR && (peek().value == "*" || peek().value == "/")) {
             Token op = peek();
             consume();
-            Expression* right = factor();
+            Expression *right = factor();
             left = new BinaryExpression(op.value, left, right);
         }
         return left;
     }
 
-    Expression* factor() {
+    Expression *factor() {
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
             return new NumberLiteral(BigNum(token.value));
         } else if (token.type == TOKEN_OPERATOR && token.value == "-") {
             consume();
-            Expression* expr = factor();
+            Expression *expr = factor();
             return new UnaryExpression("-", expr);
         } else if (token.type == TOKEN_KEYWORD && token.value == "not") {
             consume();
-            Expression* expr = primary();
+            Expression *expr = primary();
             return new UnaryExpression("not", expr);
         } else {
             return primary();
         }
     }
 
-    Expression* primary() {
+    Expression *primary() {
         Token token = peek();
         if (token.type == TOKEN_NUMBER) {
             consume();
@@ -358,7 +356,7 @@ private:
             return new NullLiteral();
         } else if (token.type == TOKEN_KEYWORD && token.value == "not") {
             consume();
-            Expression* expr = primary();
+            Expression *expr = primary();
             return new UnaryExpression("not", expr);
         } else if (token.type == TOKEN_IDENTIFIER) {
             consume();
@@ -370,7 +368,7 @@ private:
                 return new MemberAccess(new Identifier(token.value), member.value);
             } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
                 consume();
-                std::vector<Expression*> args;
+                std::vector<Expression *> args;
                 while (true) {
                     if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
                         break;
@@ -393,7 +391,7 @@ private:
                     throwSyntaxError("Expected '(' after member function name");
                 }
                 consume();
-                std::vector<Expression*> args;
+                std::vector<Expression *> args;
                 while (true) {
                     if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
                         break;
@@ -407,7 +405,7 @@ private:
                 return new FunctionCall(token.value + "." + member.value, args);
             } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "[") {
                 consume();
-                Expression* index = expression();
+                Expression *index = expression();
                 if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
                     throwSyntaxError("Expected ']' after list index");
                 }
@@ -418,12 +416,12 @@ private:
             }
         } else if (token.type == TOKEN_PUNCTUATION && token.value == "(") {
             consume();
-            Expression* expr = expression();
+            Expression *expr = expression();
             consume();
             return expr;
         } else if (token.type == TOKEN_PUNCTUATION && token.value == "[") {
             consume();
-            std::vector<Expression*> elements;
+            std::vector<Expression *> elements;
             if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
                 while (true) {
                     elements.push_back(expression());
@@ -447,6 +445,7 @@ private:
         } else {
             throwSyntaxError("Unexpected token in primary expression: " + token.value);
         }
+        return nullptr;
     }
 };
 

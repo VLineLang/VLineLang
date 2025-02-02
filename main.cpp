@@ -3,9 +3,9 @@
 bool flag = false;
 std::string filename;
 std::vector<Token> tokens;
-std::vector<Statement*> statements;
+std::vector<Statement *> statements;
 VM globalVM;
-std::map<std::string, ClassDeclaration*> classes;
+std::map<std::string, ClassDeclaration *> classes;
 
 //void printBytecode(const Bytecode& bytecode) {
 //    switch (bytecode.op) {
@@ -80,17 +80,17 @@ void interpreters() {
         if (globalVM.frames.empty()) {
             globalVM.frames.push(VM::Frame(mainProgram));
         } else {
-            VM::Frame& globalFrame = globalVM.frames.top();
+            VM::Frame &globalFrame = globalVM.frames.top();
             globalFrame.program = mainProgram;
             globalFrame.pc = 0;
         }
 
-//        for (auto bytecode : mainProgram) {
-//            printBytecode(bytecode);
-//        }
+        //        for (auto bytecode : mainProgram) {
+        //            printBytecode(bytecode);
+        //        }
 
         globalVM.execute();
-    } catch (const std::runtime_error& e) {
+    } catch (const std::runtime_error &e) {
         std::cerr << e.what() << std::endl;
         if (flag) exit(1);
     }
@@ -100,8 +100,8 @@ void lexers(std::string command) {
     try {
         tokens.clear();
         Lexer lexer(command);
-        tokens = lexer.tokenize();
-    } catch (const std::runtime_error& e) {
+        lexer.tokenize(&tokens);
+    } catch (const std::runtime_error &e) {
         std::cerr << e.what() << std::endl;
         if (flag) {
             exit(1);
@@ -114,8 +114,8 @@ void parsers() {
     try {
         statements.clear();
         Parser parser(tokens);
-        statements = parser.parse();
-    } catch (const std::runtime_error& e) {
+        parser.parse(&statements);
+    } catch (const std::runtime_error &e) {
         std::cerr << e.what() << std::endl;
         if (flag) {
             exit(1);
@@ -133,7 +133,7 @@ signed main(int argc, char *argv[]) {
                 if (op == "out") {
                     if (i + 1 >= argc) throw std::runtime_error("Can't open file (empty filename)");
                     else {
-                        char* fn = argv[i + 1];
+                        char *fn = argv[i + 1];
                         freopen(fn, "w", stdout);
                         used[i + 1] = true;
                     }
@@ -141,7 +141,7 @@ signed main(int argc, char *argv[]) {
                 if (op == "in") {
                     if (i + 1 >= argc) throw std::runtime_error("Can't open file (empty filename)");
                     else {
-                        char* fn = argv[i + 1];
+                        char *fn = argv[i + 1];
                         freopen(fn, "r", stdin);
                         used[i + 1] = true;
                     }
@@ -160,11 +160,11 @@ signed main(int argc, char *argv[]) {
         printf("VLine Compiler %s (publish on %s) [%s]\n", VLINE_VERSION, VLINE_PUBLISH, VLINE_COMPILER);
         std::string order;
         printf("Type `quit` to exit or type `__version__` to get VLine compiler version.\n");
-        while(true) {
+        while (true) {
             printf("\n>>> ");
             std::getline(std::cin, order);
-            if(order=="quit")break;
-            if(order=="__version__") {
+            if (order == "quit")break;
+            if (order == "__version__") {
                 printf("%s", VLINE_VERSION);
                 continue;
             }
@@ -173,7 +173,8 @@ signed main(int argc, char *argv[]) {
 
             bool flags = false;
 
-            if (tokens.size() > 1 && tokens[tokens.size()-2].type == TOKEN_PUNCTUATION && tokens[tokens.size()-2].value == "{") {
+            if (tokens.size() > 1 && tokens[tokens.size() - 2].type == TOKEN_PUNCTUATION && tokens[tokens.size() - 2].
+                value == "{") {
                 flags = true;
                 std::string command;
                 while (true) {
@@ -216,6 +217,5 @@ signed main(int argc, char *argv[]) {
 
         inputFile.close();
     }
-
     return 0;
 }
