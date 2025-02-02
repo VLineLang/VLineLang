@@ -18,4 +18,11 @@ add_executable(
         bytecode/codegen.hpp
         vm/vm.hpp
         vm/bignum.hpp
+        std/sys/sys.hpp
+        std/std.hpp
+        std/sys/time.hpp
+        std/general/lists.hpp
+        std/general/type.hpp
+        std/sys/files.hpp
+        std/general/IO.hpp
 )

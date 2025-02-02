@@ -1,39 +1,16 @@
 #ifndef VM_HPP
 #define VM_HPP
 
-#include "../bytecode/bytecode.hpp"
-#include "../parser/value.hpp"
-#include "../parser/errors.hpp"
-#include "../bytecode/codegen.hpp"
+#include "../utils/core.hpp"
+#include "../std/std.hpp"
 #include <vector>
 #include <map>
 #include <stack>
 #include <stdexcept>
-#include <iostream>
 #include <sstream>
-#include <chrono>
-#include <thread>
 #include <cstdlib>
 #include <ctime>
-#include <fstream>
 #include <memory>
-
-void printValue(const Value& value) {
-    switch (value.type) {
-        case Value::NUMBER: printf("%s", value.bignumValue.to_string().c_str()); break;
-        case Value::STRING: printf("%s", value.strValue.c_str()); break;
-        case Value::LIST: {
-            printf("[");
-            for (size_t i = 0; i < value.listValue.size(); ++i) {
-                printValue(value.listValue[i]);
-                if (i < value.listValue.size() - 1) printf(", ");
-            }
-            printf("]");
-            break;
-        }
-        case Value::NULL_TYPE: printf("null"); break;
-    }
-}
 
 class VM {
 public:
@@ -336,7 +313,6 @@ private:
         }
     }
 
-
     void handleReturn(Frame& frame) {
         if (!operandStack.empty()) {
             frame.returnValue = operandStack.top();
@@ -345,115 +321,6 @@ private:
             frame.returnValue = Value();
         }
         frame.pc = frame.program.size();
-    }
-
-    Value builtinPrint(const std::vector<Value>& args) {
-        for (const auto & arg : args) {
-            printValue(arg);
-        }
-        return Value();
-    }
-
-    Value builtinInput(const std::vector<Value>& args) {
-        if (!args.empty()) {
-            printValue(args[0]);
-        }
-        std::string input;
-        std::getline(std::cin, input);
-        return Value(input);
-    }
-
-    Value builtinLen(const std::vector<Value>& args) {
-        checkArgCount("len", 1, args);
-        if (args[0].type == Value::STRING) {
-            return Value(args[0].strValue.size());
-        }
-        if (args[0].type == Value::LIST) {
-            return Value(args[0].listValue.size());
-        }
-        throwTypeError("len() expects string or list");
-    }
-
-    Value builtinType(const std::vector<Value>& args) {
-        checkArgCount("type", 1, args);
-        switch (args[0].type) {
-            case Value::NUMBER: return Value("number");
-            case Value::STRING: return Value("string");
-            case Value::LIST: return Value("list");
-            case Value::NULL_TYPE: return Value("null");
-            default: return Value("unknown");
-        }
-    }
-
-    Value builtinRange(const std::vector<Value>& args) {
-        checkArgCount("range", 2, args);
-        if (args[0].type != Value::NUMBER || args[1].type != Value::NUMBER) {
-            throwTypeError("range() expects number");
-        }
-
-        std::vector<Value> list;
-        BigNum start = args[0].bignumValue;
-        BigNum end = args[1].bignumValue;
-        for (BigNum i = start; i < end; i = i + 1) {
-            list.emplace_back(i);
-        }
-        return Value(list);
-    }
-
-    Value builtinSleep(const std::vector<Value>& args) {
-        checkArgCount("sleep", 1, args);
-        if (args[0].type != Value::NUMBER) {
-            throwTypeError("sleep() expects a number");
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(args[0].bignumValue.get_ll()));
-        return Value();
-    }
-
-    Value builtinSystem(const std::vector<Value>& args) {
-        checkArgCount("system", 1, args);
-        if (args[0].type != Value::STRING) {
-            throwTypeError("system() expects a string");
-        }
-        int result = std::system(args[0].strValue.c_str());
-        return Value(result);
-    }
-
-    Value builtinExit(const std::vector<Value>& args) {
-        checkArgCount("exit", 1, args);
-        if (args[0].type != Value::NUMBER) {
-            throwTypeError("exit() expects a number");
-        }
-        std::exit(args[0].bignumValue.get_ll());
-    }
-
-    Value builtinRead(const std::vector<Value>& args) {
-        checkArgCount("read", 1, args);
-        if (args[0].type != Value::STRING) {
-            throwTypeError("read() expects a string");
-        }
-        std::ifstream file(args[0].strValue);
-        if (!file.is_open()) {
-            throwIOError("Could not open file: " + args[0].strValue);
-        }
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        return Value(content);
-    }
-
-    Value builtinWrite(const std::vector<Value>& args) {
-        checkArgCount("write", 2, args);
-        if (args[0].type != Value::STRING || args[1].type != Value::STRING) {
-            throwTypeError("write() expects two strings");
-        }
-        std::ofstream file(args[0].strValue);
-        if (!file.is_open()) {
-            throwIOError("Could not open file: " + args[0].strValue);
-        }
-        file << args[1].strValue;
-        return Value();
-    }
-
-    Value builtinTime() {
-        return Value(std::time(nullptr));
     }
 
     Value listAppend(const std::vector<Value>& args) {
@@ -501,12 +368,6 @@ private:
         }
         listCopy.listValue.erase(listCopy.listValue.begin() + start.get_ll(), listCopy.listValue.begin() + end.get_ll());
         return listCopy;
-    }
-
-    void checkArgCount(const std::string& func, size_t expected, const std::vector<Value>& args) {
-        if (args.size() != expected) {
-            throwTypeError(func + "() expects " + std::to_string(expected) + " arguments");
-        }
     }
 };
 
