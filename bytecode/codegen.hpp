@@ -1,7 +1,7 @@
 #ifndef CODEGEN_HPP
 #define CODEGEN_HPP
 
-#include "ast.hpp"
+#include "../ast/ast.hpp"
 #include "bytecode.hpp"
 #include <map>
 #include <vector>

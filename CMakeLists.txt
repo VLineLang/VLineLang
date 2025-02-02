@@ -7,15 +7,15 @@ set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 add_executable(
         Vline_lang main.cpp
-        core/parser.hpp
-        core/ast.hpp
-        core/core.hpp
-        core/token.hpp
-        core/value.hpp
-        core/lexer.hpp
-        core/errors.hpp
-        core/bytecode.hpp
-        core/codegen.hpp
-        core/vm.hpp
-        core/bignum.hpp
+        parser/parser.hpp
+        ast/ast.hpp
+        utils/core.hpp
+        lexer/token.hpp
+        parser/value.hpp
+        lexer/lexer.hpp
+        parser/errors.hpp
+        bytecode/bytecode.hpp
+        bytecode/codegen.hpp
+        vm/vm.hpp
+        vm/bignum.hpp
 )

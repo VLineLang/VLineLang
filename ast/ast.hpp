@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "bytecode.hpp"
+#include "../bytecode/bytecode.hpp"
 
 struct ASTNode {
     virtual ~ASTNode() = default;

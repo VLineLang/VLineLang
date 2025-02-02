@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
-#include "bignum.hpp"
+#include "../vm/bignum.hpp"
 
 struct Value {
     enum ValueType { NUMBER, STRING, LIST, NULL_TYPE };

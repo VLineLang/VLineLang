@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <variant>
-#include "bignum.hpp"
+#include "../vm/bignum.hpp"
 
 enum BytecodeOp {
     LOAD_CONST,    // 加载常量值（数值/字符串）

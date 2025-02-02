@@ -1,10 +1,10 @@
 #ifndef VM_HPP
 #define VM_HPP
 
-#include "bytecode.hpp"
-#include "value.hpp"
-#include "errors.hpp"
-#include "codegen.hpp"
+#include "../bytecode/bytecode.hpp"
+#include "../parser/value.hpp"
+#include "../parser/errors.hpp"
+#include "../bytecode/codegen.hpp"
 #include <vector>
 #include <map>
 #include <stack>

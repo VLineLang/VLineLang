@@ -2,7 +2,7 @@
 #define LEXER_HPP
 
 #include "token.hpp"
-#include "errors.hpp"
+#include "../parser/errors.hpp"
 #include <string>
 #include <vector>
 #include <cctype>
