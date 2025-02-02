@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include "bytecode.hpp"
+#include "../bytecode/bytecode.hpp"
 
 struct ASTNode {
     virtual ~ASTNode() = default;
@@ -21,7 +21,9 @@ struct Statement : ASTNode {
         BREAK_STATEMENT,
         CONTINUE_STATEMENT,
         EXPRESSION_STATEMENT,
-        FOR_STATEMENT
+        FOR_STATEMENT,
+        CLASS_DECLARATION,
+        CLASS_MEMBER_ASSIGNMENT,
     };
 
     virtual StatementType type() const = 0;
@@ -110,9 +112,8 @@ struct UnaryExpression : Expression {
 };
 
 struct NumberLiteral : Expression {
-    double value;
-
-    NumberLiteral(double value) : value(value) {}
+    BigNum value;
+    NumberLiteral(const BigNum& val) : value(val) {}
 };
 
 struct StringLiteral : Expression {
@@ -180,6 +181,40 @@ struct ForStatement : Statement {
     StatementType type() const override {
         return FOR_STATEMENT;
     }
+};
+
+struct ClassDeclaration : public Statement {
+    std::string className;
+    std::vector<Statement*> members;
+
+    ClassDeclaration(const std::string& name, const std::vector<Statement*>& members)
+            : className(name), members(members) {}
+
+    StatementType type() const override { return CLASS_DECLARATION; }
+};
+
+class ClassMemberAssignment : public Statement {
+public:
+    std::string className;
+    std::string memberName;
+    Expression* value;
+
+    ClassMemberAssignment(const std::string& className, const std::string& memberName, Expression* value)
+            : className(className), memberName(memberName), value(value) {}
+
+    StatementType type() const override { return CLASS_MEMBER_ASSIGNMENT; }
+};
+
+struct NewExpression : public Expression {
+    std::string className;
+    NewExpression(const std::string& name) : className(name) {}
+};
+
+struct MemberAccess : public Expression {
+    Expression* object;
+    std::string member;
+
+    MemberAccess(Expression* obj, const std::string& mem) : object(obj), member(mem) {}
 };
 
 #endif

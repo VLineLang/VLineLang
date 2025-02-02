@@ -1,10 +1,12 @@
 #ifndef CODEGEN_HPP
 #define CODEGEN_HPP
 
-#include "ast.hpp"
+#include "../ast/ast.hpp"
 #include "bytecode.hpp"
-#include <unordered_map>
+#include <map>
+#include <utility>
 #include <vector>
+#include <cmath>
 
 class CodeGen {
 public:
@@ -20,16 +22,25 @@ public:
         isReplMode = mode;
     }
 
-    std::unordered_map<std::string, FunctionDeclaration*> getFunctions() const {
+    std::map<std::string, FunctionDeclaration*> getFunctions() const {
         return functions;
+    }
+
+    std::map<std::string, ClassDeclaration*> getClasses() const {
+        return classes;
+    }
+
+    CodeGen(std::map<std::string, ClassDeclaration*> cls) {
+        classes = cls;
     }
 
 private:
     bool isReplMode = false;
     bool inFunction = false;
-    std::unordered_map<std::string, FunctionDeclaration*> functions;
-    std::unordered_map<std::string, int> variables;
-    std::unordered_map<std::string, int> labels;
+    std::map<std::string, FunctionDeclaration*> functions;
+    std::map<std::string, int> variables;
+    std::map<std::string, int> labels;
+    std::map<std::string, ClassDeclaration*> classes;
     int labelCounter = 0;
 
     int tempVarCounter = 0;
@@ -60,13 +71,13 @@ private:
                 program.push_back({JUMP, createLabel()});
                 size_t endJumpPos = program.size() - 1;
 
-                program[falseJumpPos].operand = static_cast<int>(program.size());
+                program[falseJumpPos].operand = (int)program.size();
                 for (Statement* elseStmt : ifStmt->elseBody) {
                     generateStatement(elseStmt, program);
                 }
-                program[endJumpPos].operand = static_cast<int>(program.size());
+                program[endJumpPos].operand = (int)program.size();
             } else {
-                program[falseJumpPos].operand = static_cast<int>(program.size());
+                program[falseJumpPos].operand = (int)program.size();
             }
         }
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
@@ -108,13 +119,11 @@ private:
             functions[funcDecl->name] = funcDecl;
             BytecodeProgram funcProgram;
 
-
             inFunction = true;
             for (Statement* bodyStmt : funcDecl->body) {
                 generateStatement(bodyStmt, funcProgram);
             }
             inFunction = false;
-
 
             if (funcProgram.empty() || funcProgram.back().op != RETURN) {
                 funcProgram.push_back({LOAD_CONST, 0.0});
@@ -127,13 +136,22 @@ private:
                 throwSyntaxError("'return' outside function");
             }
             generateExpression(returnStmt->value, program);
-            program.push_back({RETURN});
+            program.push_back({RETURN, 0});
         }
         else if (auto exprStmt = dynamic_cast<ExpressionStatement*>(stmt)) {
             generateExpression(exprStmt->expression, program);
             if (!isReplMode) {
                 program.push_back({POP, 0});
             }
+        }
+        else if (auto cls = dynamic_cast<ClassDeclaration*>(stmt)) {
+            classes[cls->className] = cls;
+        }
+        else if (auto classMemberAssign = dynamic_cast<ClassMemberAssignment*>(stmt)) {
+            generateExpression(classMemberAssign->value, program);
+            program.push_back({LOAD_VAR, classMemberAssign->className});
+            program.push_back({STORE_MEMBER, classMemberAssign->memberName});
+            program.push_back({STORE_VAR, classMemberAssign->className});
         }
     }
 
@@ -174,10 +192,46 @@ private:
             }
         }
         else if (auto funcCall = dynamic_cast<FunctionCall*>(expr)) {
+            bool flag_of_member = funcCall->name.find('.') != std::string::npos;
+            std::string varName;
+            if (flag_of_member) {
+                varName = funcCall->name.substr(0, funcCall->name.find('.'));
+                Expression * object = new Identifier(varName);
+                generateExpression(object, program);
+                funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
+            }
             for (auto arg : funcCall->arguments) {
                 generateExpression(arg, program);
             }
-            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, static_cast<int>(funcCall->arguments.size())}});
+            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member)}});
+            if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {
+                program.push_back({STORE_VAR, varName});
+            }
+        }
+        else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
+
+            program.push_back({CREATE_OBJECT});
+
+
+            if (classes.find(newExpr->className) != classes.end()) {
+                ClassDeclaration* cls = classes[newExpr->className];
+                std::string tempVar = "__obj_" + std::to_string(tempVarCounter++);
+
+                program.push_back({STORE_VAR, tempVar});
+
+
+                for (auto member : cls->members) {
+                    if (auto assign = dynamic_cast<Assignment*>(member)) {
+                        generateExpression(assign->value, program);
+                        program.push_back({LOAD_VAR, tempVar});
+                        program.push_back({STORE_MEMBER, assign->target});
+                    }
+                }
+            }
+        }
+        else if (auto access = dynamic_cast<MemberAccess*>(expr)) {
+            generateExpression(access->object, program);
+            program.push_back({LOAD_MEMBER, access->member});
         }
     }
 
