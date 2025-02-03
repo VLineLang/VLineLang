@@ -1,7 +1,7 @@
 #ifndef STD_SYS_HPP
 #define STD_SYS_HPP
 
-#include "../../utils/core.hpp"
+#include "../../utils/utils.hpp"
 
 Value builtinSystem(const std::vector<Value>& args) {
     checkArgCount("system", 1, args);

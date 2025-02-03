@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <map>
 #include "../vm/bignum.hpp"
+#include "../ast/ast.hpp"
 
 struct Value {
     enum ValueType { NUMBER, STRING, LIST, NULL_TYPE, OBJECT };
@@ -14,6 +15,7 @@ struct Value {
     std::vector<Value> listValue;
     BigNum bignumValue;
     std::map<std::string, Value> objectMembers;
+    std::map<std::string, FunctionDeclaration*> functions;
 
 
     Value() : type(NULL_TYPE) {}

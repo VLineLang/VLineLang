@@ -25,4 +25,5 @@ add_executable(
         std/general/type.hpp
         std/sys/files.hpp
         std/general/IO.hpp
+        utils/utils.hpp
 )

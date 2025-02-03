@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <iomanip>
+#include "../parser/errors.hpp"
 
 using namespace std;
 

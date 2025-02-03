@@ -1,8 +1,10 @@
 #ifndef VM_HPP
 #define VM_HPP
 
-#include "../utils/core.hpp"
+#include "../parser/errors.hpp"
+#include "../parser/value.hpp"
 #include "../std/std.hpp"
+#include "../utils/utils.hpp"
 #include <vector>
 #include <map>
 #include <stack>
