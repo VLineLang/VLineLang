@@ -7,64 +7,67 @@ std::vector<Statement*> statements;
 VM globalVM;
 std::map<std::string, ClassDeclaration*> classes;
 
-//void printBytecode(const Bytecode& bytecode) {
-//    switch (bytecode.op) {
-//        case LOAD_CONST:
-//            std::cout << "LOAD_CONST" << std::endl;
-//            break;
-//        case LOAD_VAR:
-//            std::cout << "LOAD_VAR" << std::endl;
-//            break;
-//        case STORE_VAR:
-//            std::cout << "STORE_VAR" << std::endl;
-//            break;
-//        case BINARY_OP:
-//            std::cout << "BINARY_OP" << std::endl;
-//            break;
-//        case JUMP_IF_FALSE:
-//            std::cout << "JUMP_IF_FALSE" << std::endl;
-//            break;
-//        case CALL_FUNCTION:
-//            std::cout << "CALL_FUNCTION" << std::endl;
-//            break;
-//        case JUMP:
-//            std::cout << "JUMP" << std::endl;
-//            break;
-//        case RETURN:
-//            std::cout << "RETURN" << std::endl;
-//            break;
-//        case BUILD_LIST:
-//            std::cout << "BUILD_LIST" << std::endl;
-//            break;
-//        case GET_ITER:
-//            std::cout << "GET_ITER" << std::endl;
-//            break;
-//        case FOR_ITER:
-//            std::cout << "FOR_ITER" << std::endl;
-//            break;
-//        case POP:
-//            std::cout << "POP" << std::endl;
-//            break;
-//        case LOAD_SUBSCRIPT:
-//            std::cout << "LOAD_SUBSCRIPT" << std::endl;
-//            break;
-//        case STORE_SUBSCRIPT:
-//            std::cout << "STORE_SUBSCRIPT" << std::endl;
-//            break;
-//        case CREATE_OBJECT:
-//            std::cout << "CREATE_OBJECT" << std::endl;
-//            break;
-//        case LOAD_MEMBER:
-//            std::cout << "LOAD_MEMBER" << std::endl;
-//            break;
-//        case STORE_MEMBER:
-//            std::cout << "STORE_MEMBER" << std::endl;
-//            break;
-//        default:
-//            std::cout << "Unknown opcode" << std::endl;
-//            break;
-//    }
-//}
+void printBytecode(const Bytecode& bytecode) {
+    switch (bytecode.op) {
+        case LOAD_CONST:
+            std::cout << "LOAD_CONST" << std::endl;
+            break;
+        case LOAD_VAR:
+            std::cout << "LOAD_VAR" << std::endl;
+            break;
+        case STORE_VAR:
+            std::cout << "STORE_VAR" << std::endl;
+            break;
+        case BINARY_OP:
+            std::cout << "BINARY_OP" << std::endl;
+            break;
+        case JUMP_IF_FALSE:
+            std::cout << "JUMP_IF_FALSE" << std::endl;
+            break;
+        case CALL_FUNCTION:
+            std::cout << "CALL_FUNCTION" << std::endl;
+            break;
+        case JUMP:
+            std::cout << "JUMP" << std::endl;
+            break;
+        case RETURN:
+            std::cout << "RETURN" << std::endl;
+            break;
+        case BUILD_LIST:
+            std::cout << "BUILD_LIST" << std::endl;
+            break;
+        case GET_ITER:
+            std::cout << "GET_ITER" << std::endl;
+            break;
+        case FOR_ITER:
+            std::cout << "FOR_ITER" << std::endl;
+            break;
+        case POP:
+            std::cout << "POP" << std::endl;
+            break;
+        case LOAD_SUBSCRIPT:
+            std::cout << "LOAD_SUBSCRIPT" << std::endl;
+            break;
+        case STORE_SUBSCRIPT:
+            std::cout << "STORE_SUBSCRIPT" << std::endl;
+            break;
+        case CREATE_OBJECT:
+            std::cout << "CREATE_OBJECT" << std::endl;
+            break;
+        case LOAD_MEMBER:
+            std::cout << "LOAD_MEMBER" << std::endl;
+            break;
+        case STORE_MEMBER:
+            std::cout << "STORE_MEMBER" << std::endl;
+            break;
+        case CLEAR:
+            std::cout << "CLEAR" << std::endl;
+            break;
+        default:
+            std::cout << "Unknown opcode" << std::endl;
+            break;
+    }
+}
 
 void interpreters() {
     try {
@@ -73,7 +76,9 @@ void interpreters() {
         BytecodeProgram mainProgram = codegen.generate(statements);
 
         auto newFuncs = codegen.getFunctions();
-        globalVM.functions = newFuncs;
+        for (const auto& f : newFuncs) {
+            globalVM.functions[f.first] = f.second;
+        }
 
         classes = codegen.getClasses();
 

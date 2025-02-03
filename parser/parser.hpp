@@ -84,17 +84,22 @@ private:
         consume();
         consume();
 
-        std::vector<Statement*> members;
+        std::vector<Assignment*> members;
+        std::vector<FunctionDeclaration*> functions;
         while (peek().value != "}") {
-
-            if (auto stmt = dynamic_cast<Assignment*>(statement())) {
-                members.push_back(stmt);
+            if (peek().type == TOKEN_KEYWORD && peek().value == "fn") {
+                functions.push_back(functionDeclaration());
             } else {
-                throwSyntaxError("Unsupported statement in class declaration");
+                Statement* stmt = statement();
+                if (auto assign = dynamic_cast<Assignment*>(stmt)) {
+                    members.push_back(assign);
+                } else {
+                    throwSyntaxError("Unsupported statement in class declaration");
+                }
             }
         }
         consume();
-        return new ClassDeclaration(name.value, members);
+        return new ClassDeclaration(name.value, members, functions);
     }
 
     Assignment* subscriptAssignment() {
@@ -367,7 +372,23 @@ private:
                 Token member = peek();
                 if (member.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected member name");
                 consume();
-                return new MemberAccess(new Identifier(token.value), member.value);
+                if (peek().type != TOKEN_PUNCTUATION || peek().value != "(") {
+                    return new MemberAccess(new Identifier(token.value), member.value);
+                } else {
+                    consume();
+                    std::vector<Expression*> args;
+                    while (true) {
+                        if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
+                            break;
+                        }
+                        if (!args.empty() && peek().type == TOKEN_PUNCTUATION && peek().value == ",") {
+                            consume();
+                        }
+                        args.push_back(expression());
+                    }
+                    consume();
+                    return new FunctionCall(token.value + "." + member.value, args);
+                }
             } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
                 consume();
                 std::vector<Expression*> args;
@@ -382,29 +403,6 @@ private:
                 }
                 consume();
                 return new FunctionCall(token.value, args);
-            } else if (peek().type == TOKEN_OPERATOR && peek().value == ".") {
-                consume();
-                Token member = peek();
-                if (member.type != TOKEN_IDENTIFIER) {
-                    throwSyntaxError("Expected member function name after '.'");
-                }
-                consume();
-                if (peek().type != TOKEN_PUNCTUATION || peek().value != "(") {
-                    throwSyntaxError("Expected '(' after member function name");
-                }
-                consume();
-                std::vector<Expression*> args;
-                while (true) {
-                    if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
-                        break;
-                    }
-                    if (!args.empty() && peek().type == TOKEN_PUNCTUATION && peek().value == ",") {
-                        consume();
-                    }
-                    args.push_back(expression());
-                }
-                consume();
-                return new FunctionCall(token.value + "." + member.value, args);
             } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "[") {
                 consume();
                 Expression* index = expression();

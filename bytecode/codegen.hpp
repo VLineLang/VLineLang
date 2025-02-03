@@ -46,6 +46,8 @@ private:
     int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
+        program.push_back({CLEAR});
+
         if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
             if (assignment->isSubscriptAssignment) {
                 generateExpression(new Identifier(assignment->target), program);
@@ -192,7 +194,7 @@ private:
             }
         }
         else if (auto funcCall = dynamic_cast<FunctionCall*>(expr)) {
-            bool flag_of_member = funcCall->name.find('.') != std::string::npos;
+            int flag_of_member = funcCall->name.find('.') != std::string::npos;
             std::string varName;
             if (flag_of_member) {
                 varName = funcCall->name.substr(0, funcCall->name.find('.'));
@@ -203,20 +205,19 @@ private:
             for (auto arg : funcCall->arguments) {
                 generateExpression(arg, program);
             }
-            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member)}});
+            if (!flag_of_member || funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") { --flag_of_member; }
+            else program.push_back({LOAD_CONST, varName});
+            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
             if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {
                 program.push_back({STORE_VAR, varName});
             }
         }
         else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
-
             program.push_back({CREATE_OBJECT});
-
 
             if (classes.find(newExpr->className) != classes.end()) {
                 ClassDeclaration* cls = classes[newExpr->className];
                 std::string tempVar = "__obj_" + std::to_string(tempVarCounter++);
-
                 program.push_back({STORE_VAR, tempVar});
 
 
@@ -225,8 +226,38 @@ private:
                         generateExpression(assign->value, program);
                         program.push_back({LOAD_VAR, tempVar});
                         program.push_back({STORE_MEMBER, assign->target});
+                        program.push_back({STORE_VAR, tempVar});
                     }
                 }
+
+
+                for (FunctionDeclaration* func : cls->functions) {
+
+                    program.push_back({LOAD_VAR, tempVar});
+                    program.push_back({LOAD_CONST, func->name});
+                    program.push_back({LOAD_FUNC, cls->className + "." + func->name});
+                    program.push_back({STORE_MEMBER_FUNC});
+                    program.push_back({STORE_VAR, tempVar});
+
+                    functions[cls->className + "." + func->name] = func;
+                    func->name = cls->className + "." + func->name;
+                    BytecodeProgram funcProgram;
+
+                    inFunction = true;
+                    for (Statement* bodyStmt : func->body) {
+                        generateStatement(bodyStmt, funcProgram);
+                    }
+                    inFunction = false;
+                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
+                        funcProgram.push_back({LOAD_CONST, 0.0});
+                        funcProgram.push_back({RETURN, 0});
+                    }
+                    func->bytecode = funcProgram;
+                }
+
+                program.push_back({LOAD_VAR, tempVar});
+            } else {
+                throwSyntaxError("Class not found: " + newExpr->className);
             }
         }
         else if (auto access = dynamic_cast<MemberAccess*>(expr)) {

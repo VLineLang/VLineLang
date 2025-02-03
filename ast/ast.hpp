@@ -183,12 +183,15 @@ struct ForStatement : Statement {
     }
 };
 
-struct ClassDeclaration : public Statement {
+class ClassDeclaration : public Statement {
+public:
     std::string className;
-    std::vector<Statement*> members;
-
-    ClassDeclaration(const std::string& name, const std::vector<Statement*>& members)
-            : className(name), members(members) {}
+    std::vector<Assignment*> members;
+    std::vector<FunctionDeclaration*> functions;
+    ClassDeclaration(const std::string& name,
+                     const std::vector<Assignment*>& m,
+                     const std::vector<FunctionDeclaration*>& f)
+            : className(name), members(m), functions(f) {}
 
     StatementType type() const override { return CLASS_DECLARATION; }
 };

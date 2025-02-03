@@ -17,7 +17,6 @@ struct Value {
     std::map<std::string, Value> objectMembers;
     std::map<std::string, FunctionDeclaration*> functions;
 
-
     Value() : type(NULL_TYPE) {}
     explicit Value(const BigNum& val) : type(NUMBER), bignumValue(val) {}
     explicit Value(const std::string& val) : type(STRING), strValue(val) {}
