@@ -111,9 +111,9 @@ void interpreters() {
             globalFrame.pc = 0;
         }
 
-        for (auto bytecode : mainProgram) {
-            printBytecode(bytecode);
-        }
+//        for (auto bytecode : mainProgram) {
+//            printBytecode(bytecode);
+//        }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {
