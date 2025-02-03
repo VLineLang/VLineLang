@@ -10,63 +10,84 @@ std::map<std::string, ClassDeclaration*> classes;
 void printBytecode(const Bytecode& bytecode) {
     switch (bytecode.op) {
         case LOAD_CONST:
-            std::cout << "LOAD_CONST" << std::endl;
+            std::cout << "LOAD_CONST";
             break;
         case LOAD_VAR:
-            std::cout << "LOAD_VAR" << std::endl;
+            std::cout << "LOAD_VAR";
             break;
         case STORE_VAR:
-            std::cout << "STORE_VAR" << std::endl;
+            std::cout << "STORE_VAR";
             break;
         case BINARY_OP:
-            std::cout << "BINARY_OP" << std::endl;
+            std::cout << "BINARY_OP";
             break;
         case JUMP_IF_FALSE:
-            std::cout << "JUMP_IF_FALSE" << std::endl;
+            std::cout << "JUMP_IF_FALSE";
             break;
         case CALL_FUNCTION:
-            std::cout << "CALL_FUNCTION" << std::endl;
+            std::cout << "CALL_FUNCTION";
             break;
         case JUMP:
-            std::cout << "JUMP" << std::endl;
+            std::cout << "JUMP";
             break;
         case RETURN:
-            std::cout << "RETURN" << std::endl;
+            std::cout << "RETURN";
             break;
         case BUILD_LIST:
-            std::cout << "BUILD_LIST" << std::endl;
-            break;
-        case GET_ITER:
-            std::cout << "GET_ITER" << std::endl;
-            break;
-        case FOR_ITER:
-            std::cout << "FOR_ITER" << std::endl;
+            std::cout << "BUILD_LIST";
             break;
         case POP:
-            std::cout << "POP" << std::endl;
+            std::cout << "POP";
             break;
         case LOAD_SUBSCRIPT:
-            std::cout << "LOAD_SUBSCRIPT" << std::endl;
+            std::cout << "LOAD_SUBSCRIPT";
             break;
         case STORE_SUBSCRIPT:
-            std::cout << "STORE_SUBSCRIPT" << std::endl;
+            std::cout << "STORE_SUBSCRIPT";
             break;
         case CREATE_OBJECT:
-            std::cout << "CREATE_OBJECT" << std::endl;
+            std::cout << "CREATE_OBJECT";
             break;
         case LOAD_MEMBER:
-            std::cout << "LOAD_MEMBER" << std::endl;
+            std::cout << "LOAD_MEMBER";
             break;
         case STORE_MEMBER:
-            std::cout << "STORE_MEMBER" << std::endl;
+            std::cout << "STORE_MEMBER";
             break;
         case CLEAR:
-            std::cout << "CLEAR" << std::endl;
+            std::cout << "CLEAR";
             break;
         default:
-            std::cout << "Unknown opcode" << std::endl;
+            std::cout << "Unknown opcode";
             break;
     }
+    printf(" ");
+    Bytecode instr = bytecode;
+    try{
+        if (!std::get<std::string>(instr.operand).empty()) {
+            std::cout << " " << std::get<std::string>(instr.operand);
+        }
+    } catch(...) {
+
+    }
+
+    try{
+        if (std::get<BigNum>(instr.operand)!= 0) {
+            std::cout << " " << std::get<BigNum>(instr.operand).get_ll();
+        }
+    } catch(...) {
+
+    }
+
+    try{
+        if (!std::get<CallFunctionOperand>(instr.operand).funcName.empty()) {
+            std::cout << " " << std::get<CallFunctionOperand>(instr.operand).funcName;
+        }
+    } catch(...) {
+
+    }
+
+    std::cout << std::endl;
 }
 
 void interpreters() {
@@ -90,9 +111,9 @@ void interpreters() {
             globalFrame.pc = 0;
         }
 
-//        for (auto bytecode : mainProgram) {
-//            printBytecode(bytecode);
-//        }
+        for (auto bytecode : mainProgram) {
+            printBytecode(bytecode);
+        }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {

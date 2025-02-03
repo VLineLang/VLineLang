@@ -15,12 +15,22 @@ public:
         for (Statement* stmt : statements) {
             generateStatement(stmt, program);
         }
+        resolveLabels(program);
         return program;
     }
 
     void setReplMode(bool mode) {
         isReplMode = mode;
     }
+
+    struct LoopContext {
+        int breakLabel;
+        int continueLabel;
+    };
+    std::vector<LoopContext> loopContextStack;
+    std::map<int, int> labelAddresses;
+    std::vector<std::pair<size_t, int>> unresolvedJumps;
+
 
     std::map<std::string, FunctionDeclaration*> getFunctions() const {
         return functions;
@@ -84,38 +94,92 @@ private:
         }
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
             generateExpression(forStmt->iterable, program);
-            std::string tempVar = "__iter_temp_" + std::to_string(tempVarCounter++);
-            program.push_back({STORE_VAR, tempVar});
-            program.push_back({LOAD_VAR, tempVar});
-            program.push_back({GET_ITER});
-            size_t loopStart = program.size();
+            std::string listVar = "__iter_list_" + std::to_string(tempVarCounter++) + "__";
+            program.push_back({STORE_VAR, listVar});
 
-            program.push_back({FOR_ITER, createLabel()});
-            size_t exitPos = program.size() - 1;
+            std::string indexVar = "__index_" + std::to_string(tempVarCounter++) + "__";
+            program.push_back({LOAD_CONST, BigNum(0)});
+            program.push_back({STORE_VAR, indexVar});
 
+            LoopContext ctx;
+            ctx.breakLabel = createLabel();
+            ctx.continueLabel = createLabel();
+            loopContextStack.push_back(ctx);
+
+            int loopStartLabel = createLabel();
+            program.push_back({LABEL, loopStartLabel});
+            labelAddresses[loopStartLabel] = program.size() - 1;
+
+
+            program.push_back({LOAD_VAR, indexVar});
+            program.push_back({LOAD_VAR, listVar});
+            program.push_back({CALL_FUNCTION, CallFunctionOperand{"len", 1}});
+            program.push_back({BINARY_OP, "<"});
+            program.push_back({JUMP_IF_FALSE, ctx.breakLabel});
+            unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
+
+
+            program.push_back({LOAD_VAR, listVar});
+            program.push_back({LOAD_VAR, indexVar});
+            program.push_back({LOAD_SUBSCRIPT});
             program.push_back({STORE_VAR, forStmt->variable});
 
 
             for (Statement* bodyStmt : forStmt->body) {
                 generateStatement(bodyStmt, program);
-                program.push_back({POP, 0});
             }
 
-            program.push_back({JUMP, static_cast<int>(loopStart)});
-            program[exitPos].operand = static_cast<int>(program.size());
+
+            program.push_back({LABEL, ctx.continueLabel});
+            labelAddresses[ctx.continueLabel] = program.size();
+            program.push_back({LOAD_VAR, indexVar});
+            program.push_back({LOAD_CONST, BigNum(1)});
+            program.push_back({BINARY_OP, "+"});
+            program.push_back({STORE_VAR, indexVar});
+
+
+            program.push_back({JUMP, loopStartLabel});
+            unresolvedJumps.push_back({program.size() - 1, loopStartLabel});
+
+
+            program.push_back({LABEL, ctx.breakLabel});
+            labelAddresses[ctx.breakLabel] = program.size();
+
+            loopContextStack.pop_back();
         }
+
         else if (auto whileStmt = dynamic_cast<WhileStatement*>(stmt)) {
-            size_t loopStart = program.size();
+
+            LoopContext ctx;
+            ctx.breakLabel = createLabel();
+            ctx.continueLabel = createLabel();
+            loopContextStack.push_back(ctx);
+
+
+            int loopStartLabel = createLabel();
+            program.push_back(Bytecode{LABEL, loopStartLabel});
+            labelAddresses[loopStartLabel] = program.size() - 1;
+
+
             generateExpression(whileStmt->condition, program);
-            program.push_back({JUMP_IF_FALSE, createLabel()});
-            size_t exitPos = program.size() - 1;
+            program.push_back(Bytecode{JUMP_IF_FALSE, ctx.breakLabel});
+            unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
+
 
             for (Statement* bodyStmt : whileStmt->body) {
                 generateStatement(bodyStmt, program);
             }
 
-            program.push_back({JUMP, static_cast<int>(loopStart)});
-            program[exitPos].operand = static_cast<int>(program.size());
+
+            program.push_back(Bytecode{JUMP, loopStartLabel});
+            unresolvedJumps.push_back({program.size() - 1, loopStartLabel});
+
+
+            program.push_back(Bytecode{LABEL, ctx.breakLabel});
+            labelAddresses[ctx.breakLabel] = program.size();
+
+
+            loopContextStack.pop_back();
         }
         else if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(stmt)) {
             functions[funcDecl->name] = funcDecl;
@@ -147,6 +211,18 @@ private:
             }
         }
         else if (auto cls = dynamic_cast<ClassDeclaration*>(stmt)) {
+            if (cls->parentName != "self") {
+                if (!classes.count(cls->parentName)) {
+                    throwIdentifierError("Class not found: " + cls->parentName);
+                }
+                ClassDeclaration* parent = classes[cls->parentName];
+                for (auto member : parent->members) {
+                    cls->members[member.first] = member.second;
+                }
+                for (auto func : parent->functions) {
+                    cls->functions[func.first] = func.second;
+                }
+            }
             classes[cls->className] = cls;
         }
         else if (auto classMemberAssign = dynamic_cast<ClassMemberAssignment*>(stmt)) {
@@ -154,6 +230,22 @@ private:
             program.push_back({LOAD_VAR, classMemberAssign->className});
             program.push_back({STORE_MEMBER, classMemberAssign->memberName});
             program.push_back({STORE_VAR, classMemberAssign->className});
+        }
+        else if (dynamic_cast<ContinueStatement*>(stmt)) {
+            if (loopContextStack.empty()) {
+                throwSyntaxError("'continue' outside loop");
+            }
+            LoopContext& ctx = loopContextStack.back();
+            program.push_back(Bytecode{JUMP, ctx.continueLabel});
+            unresolvedJumps.push_back({program.size() - 1, ctx.continueLabel});
+        }
+        else if (dynamic_cast<BreakStatement*>(stmt)) {
+            if (loopContextStack.empty()) {
+                throwSyntaxError("'break' outside loop");
+            }
+            LoopContext& ctx = loopContextStack.back();
+            program.push_back(Bytecode{JUMP, ctx.breakLabel});
+            unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
         }
     }
 
@@ -217,12 +309,12 @@ private:
 
             if (classes.find(newExpr->className) != classes.end()) {
                 ClassDeclaration* cls = classes[newExpr->className];
-                std::string tempVar = "__obj_" + std::to_string(tempVarCounter++);
+                std::string tempVar = "__temp_obj__";
                 program.push_back({STORE_VAR, tempVar});
 
 
                 for (auto member : cls->members) {
-                    if (auto assign = dynamic_cast<Assignment*>(member)) {
+                    if (auto assign = dynamic_cast<Assignment*>(member.second)) {
                         generateExpression(assign->value, program);
                         program.push_back({LOAD_VAR, tempVar});
                         program.push_back({STORE_MEMBER, assign->target});
@@ -230,21 +322,18 @@ private:
                     }
                 }
 
-
-                for (FunctionDeclaration* func : cls->functions) {
-
+                for (auto func : cls->functions) {
                     program.push_back({LOAD_VAR, tempVar});
-                    program.push_back({LOAD_CONST, func->name});
-                    program.push_back({LOAD_FUNC, cls->className + "." + func->name});
+                    program.push_back({LOAD_CONST, func.second->name});
+                    program.push_back({LOAD_FUNC, cls->className + "." + func.second->name});
                     program.push_back({STORE_MEMBER_FUNC});
                     program.push_back({STORE_VAR, tempVar});
 
-                    functions[cls->className + "." + func->name] = func;
-                    func->name = cls->className + "." + func->name;
+                    functions[cls->className + "." + func.second->name] = func.second;
                     BytecodeProgram funcProgram;
 
                     inFunction = true;
-                    for (Statement* bodyStmt : func->body) {
+                    for (Statement* bodyStmt : func.second->body) {
                         generateStatement(bodyStmt, funcProgram);
                     }
                     inFunction = false;
@@ -252,7 +341,7 @@ private:
                         funcProgram.push_back({LOAD_CONST, 0.0});
                         funcProgram.push_back({RETURN, 0});
                     }
-                    func->bytecode = funcProgram;
+                    func.second->bytecode = funcProgram;
                 }
 
                 program.push_back({LOAD_VAR, tempVar});
@@ -274,6 +363,19 @@ private:
     }
 
     int createLabel() { return labelCounter++; }
+
+    void resolveLabels(BytecodeProgram& program) {
+        for (auto& jump : unresolvedJumps) {
+            size_t pos = jump.first;
+            int labelId = jump.second;
+            if (labelAddresses.find(labelId) == labelAddresses.end()) {
+                throw std::runtime_error("Undefined label: " + std::to_string(labelId));
+            }
+            program[pos].operand = labelAddresses[labelId];
+        }
+        unresolvedJumps.clear();
+        labelAddresses.clear();
+    }
 };
 
 #endif
