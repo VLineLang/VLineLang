@@ -80,25 +80,34 @@ private:
 
     ClassDeclaration* classDeclaration() {
         consume();
-        Token name = peek();
+        Token name = peek(), parentName = Token{TOKEN_EOF, ""};
         consume();
+        if (peek().type == TOKEN_PUNCTUATION && peek().value == ":") {
+            consume();
+            parentName = peek();
+            if (parentName.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected class name after ':'");
+            consume();
+        }
         consume();
-
-        std::vector<Assignment*> members;
-        std::vector<FunctionDeclaration*> functions;
+        std::map<std::string, Assignment*> members;
+        std::map<std::string, FunctionDeclaration*> functions;
         while (peek().value != "}") {
             if (peek().type == TOKEN_KEYWORD && peek().value == "fn") {
-                functions.push_back(functionDeclaration());
+                FunctionDeclaration* funcDecl = functionDeclaration();
+                functions[funcDecl->name] = funcDecl;
             } else {
                 Statement* stmt = statement();
                 if (auto assign = dynamic_cast<Assignment*>(stmt)) {
-                    members.push_back(assign);
+                    members[assign->target] = assign;
                 } else {
                     throwSyntaxError("Unsupported statement in class declaration");
                 }
             }
         }
         consume();
+        if (parentName.type != TOKEN_EOF) {
+            return new ClassDeclaration(name.value, members, functions, parentName.value);
+        }
         return new ClassDeclaration(name.value, members, functions);
     }
 

@@ -16,8 +16,6 @@ enum BytecodeOp {
     JUMP,              // 无条件跳转（绝对地址）
     RETURN,            // 函数返回
     BUILD_LIST,        // 构建列表
-    GET_ITER,          // 获取迭代器
-    FOR_ITER,          // 迭代控制
     POP,               // 弹出栈顶元素
     LOAD_SUBSCRIPT,    // 加载列表元素
     STORE_SUBSCRIPT,   // 存储到列表元素
@@ -27,6 +25,7 @@ enum BytecodeOp {
     LOAD_FUNC,         // 加载函数闭包
     STORE_MEMBER_FUNC, // 存储成员函数到对象
     CLEAR,             // 清空栈
+    LABEL              // 标签（用于跳转目标）
 };
 
 enum CompareOp {

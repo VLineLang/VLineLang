@@ -74,8 +74,6 @@ public:
                     case JUMP_IF_FALSE: std::cout << "JUMP_IF_FALSE"; break;
                     case CALL_FUNCTION: std::cout << "CALL_FUNCTION"; break;
                     case BUILD_LIST: std::cout << "BUILD_LIST"; break;
-                    case GET_ITER: std::cout << "GET_ITER"; break;
-                    case FOR_ITER: std::cout << "FOR_ITER"; break;
                     case POP: std::cout << "POP"; break;
                     case RETURN: std::cout << "RETURN"; break;
                     case LOAD_SUBSCRIPT: std::cout << "LOAD_SUBSCRIPT"; break;
@@ -160,8 +158,6 @@ public:
                     case JUMP_IF_FALSE: currentFrame.pc = handleJumpIfFalse(instr, currentFrame.pc); continue;
                     case CALL_FUNCTION: handleCallFunction(instr, currentFrame); break;
                     case BUILD_LIST: handleBuildList(instr); break;
-                    case GET_ITER: handleGetIter(); break;
-                    case FOR_ITER: currentFrame.pc = handleForIter(instr, currentFrame.pc); continue;
                     case POP: operandStack.pop(); break;
                     case RETURN: handleReturn(currentFrame); break;
                     case LOAD_SUBSCRIPT: handleLoadSubscript(); break;
@@ -233,6 +229,7 @@ public:
                         std::stack<Value>().swap(operandStack);
                         break;
                     }
+                    case LABEL: break;
                     default: throwRuntimeError("Unknown bytecode instruction");
                 }
                 currentFrame.pc++;
@@ -382,42 +379,6 @@ private:
             operandStack.pop();
         }
         operandStack.push(Value(elements));
-    }
-
-    void handleGetIter() {
-        if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in GET_ITER");
-        }
-        Value original = operandStack.top();
-        operandStack.pop();
-
-        if (original.type != Value::LIST) {
-            throwTypeError("Can only iterate over lists");
-        }
-
-
-        Value iterator;
-        iterator.type = Value::LIST;
-        iterator.listValue = original.listValue;
-        operandStack.push(iterator);
-    }
-
-    size_t handleForIter(const Bytecode& instr, size_t pc) {
-        if (operandStack.empty()) {
-            throwRuntimeError("Stack underflow in FOR_ITER");
-        }
-        Value& iterator = operandStack.top();
-
-        if (iterator.listValue.empty()) {
-            operandStack.pop();
-            return (std::get<BigNum>(instr.operand)).get_ll();
-        }
-
-
-        Value current = iterator.listValue.front();
-        iterator.listValue.erase(iterator.listValue.begin());
-        operandStack.push(current);
-        return pc + 1;
     }
 
     void handleCallFunction(const Bytecode& instr, Frame& currFrame) {

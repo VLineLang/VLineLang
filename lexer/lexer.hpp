@@ -31,7 +31,7 @@ public:
                        current == '*' || current == '/' || current == '<' ||
                        current == '>' || current == '!' || current == '-') {
                 tokens.push_back(operator_());
-            } else if (current == '(' || current == ')' || current == '{' ||
+            } else if (current == '(' || current == ')' || current == '{' || current == ':' ||
                        current == '}' || current == ',' || current == '[' || current == ']') {
                 tokens.push_back(punctuation());
             } else {
@@ -167,7 +167,7 @@ private:
 
     Token punctuation() {
         char punc = peek();
-        if (punc == '(' || punc == ')' || punc == '{' ||
+        if (punc == '(' || punc == ')' || punc == '{' || punc == ':' ||
             punc == '}' || punc == ',' || punc == '[' || punc == ']') {
             consume();
             return {TOKEN_PUNCTUATION, std::string(1, punc)};

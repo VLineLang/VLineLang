@@ -186,12 +186,20 @@ struct ForStatement : Statement {
 class ClassDeclaration : public Statement {
 public:
     std::string className;
-    std::vector<Assignment*> members;
-    std::vector<FunctionDeclaration*> functions;
+    std::map<std::string, Assignment*> members;
+    std::map<std::string, FunctionDeclaration*> functions;
+    std::string parentName;
+
     ClassDeclaration(const std::string& name,
-                     const std::vector<Assignment*>& m,
-                     const std::vector<FunctionDeclaration*>& f)
-            : className(name), members(m), functions(f) {}
+                     const std::map<std::string, Assignment*>& m,
+                     const std::map<std::string, FunctionDeclaration*>& f)
+            : className(name), members(m), functions(f), parentName("self") {}
+
+    ClassDeclaration(const std::string& name,
+                     const std::map<std::string, Assignment*>& m,
+                     const std::map<std::string, FunctionDeclaration*>& f,
+                     const std::string& parentName)
+            : className(name), members(m), functions(f), parentName(parentName) {}
 
     StatementType type() const override { return CLASS_DECLARATION; }
 };
