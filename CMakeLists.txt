@@ -26,4 +26,5 @@ add_executable(
         std/sys/files.hpp
         std/general/IO.hpp
         utils/utils.hpp
+        std/maths/math.hpp
 )

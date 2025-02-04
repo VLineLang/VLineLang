@@ -22,13 +22,6 @@ private:
     vector<int> integer;
     vector<int> decimal;
 
-    BigNum trunc() const {
-        BigNum result = *this;
-        result.decimal.clear();
-        result.normalize();
-        return result;
-    }
-
     static void fft(vector<complex<double>>& a, bool invert) {
         int n = a.size();
         if (n == 0) return;
@@ -69,7 +62,6 @@ private:
 
 
     void normalize() {
-
         while (integer.size() > 1 && integer.back() == 0)
             integer.pop_back();
 
@@ -88,6 +80,13 @@ public:
 
     BigNum() : is_negative(false), integer(1, 0) {}
 
+    BigNum trunc() const {
+        BigNum result = *this;
+        result.decimal.clear();
+        result.normalize();
+        return result;
+    }
+
     explicit BigNum(const string& s) {
         string num = s;
         is_negative = false;
@@ -101,12 +100,12 @@ public:
 
         size_t e_pos = num.find_first_of("eE");
         string exp_str;
-        int exponent = 0;
+        long long exponent = 0;
         if (e_pos != string::npos) {
             exp_str = num.substr(e_pos + 1);
             num = num.substr(0, e_pos);
             try {
-                exponent = stoi(exp_str);
+                exponent = atoll(exp_str.c_str());
             } catch (...) {
                 throw invalid_argument("Invalid exponent: " + exp_str);
             }
@@ -122,7 +121,7 @@ public:
         int original_dot_pos = int_part.size();
 
 
-        int new_dot_pos = original_dot_pos + exponent;
+        long long new_dot_pos = original_dot_pos + exponent;
 
 
         string new_int_part, new_dec_part;
@@ -421,12 +420,13 @@ public:
         return result;
     }
 
-    BigNum operator/(const BigNum& rhs) const {
-        if (rhs == 0) throwZeroDivisionError("Division by zero");
-        if (*this == 0) return BigNum();
+    BigNum divide(const BigNum& divisor, int decimal_limit) const {
+        if (divisor == 0) {
+            throw std::runtime_error("Division by zero");
+        }
 
         BigNum dividend = this->abs();
-        BigNum divisor = rhs.abs();
+        BigNum divisor_abs = divisor.abs();
 
         BigNum quotient;
         BigNum remainder;
@@ -435,8 +435,8 @@ public:
             remainder = remainder * BigNum(10) + BigNum(dividend.integer[i]);
 
             int digit = 0;
-            while (remainder >= divisor) {
-                remainder = remainder - divisor;
+            while (remainder >= divisor_abs) {
+                remainder = remainder - divisor_abs;
                 ++digit;
             }
             quotient.integer.insert(quotient.integer.begin(), digit);
@@ -446,27 +446,31 @@ public:
             for (int i = 0; i < dividend.decimal.size(); ++i) {
                 remainder = remainder * BigNum(10) + BigNum(dividend.decimal[i]);
                 int digit = 0;
-                while (remainder >= divisor) {
-                    remainder = remainder - divisor;
+                while (remainder >= divisor_abs) {
+                    remainder = remainder - divisor_abs;
                     ++digit;
                 }
                 quotient.decimal.push_back(digit);
             }
         }
 
-        for (int i = 0; i < DECIMAL_LIMIT; ++i) {
+        for (int i = 0; i < decimal_limit; ++i) {
             remainder = remainder * BigNum(10);
             int digit = 0;
-            while (remainder >= divisor) {
-                remainder = remainder - divisor;
+            while (remainder >= divisor_abs) {
+                remainder = remainder - divisor_abs;
                 ++digit;
             }
             quotient.decimal.push_back(digit);
         }
 
-        quotient.is_negative = is_negative ^ rhs.is_negative;
+        quotient.is_negative = is_negative ^ divisor.is_negative;
         quotient.normalize();
         return quotient;
+    }
+
+    BigNum operator/(const BigNum& rhs) const {
+        return this->divide(rhs, DECIMAL_LIMIT);
     }
 
     BigNum operator%(const BigNum& rhs) const {
@@ -504,6 +508,87 @@ public:
                 s += char('0' + d);
         }
         return s;
+    }
+
+    BigNum sqrt() const {
+        const BigNum& S = *this;
+        if (S.is_negative) {
+            throw std::runtime_error("Square root of a negative number is undefined.");
+        }
+        if (S.is_zero()) {
+            return BigNum(0);
+        }
+
+        BigNum x0;
+        if (!S.integer.empty() && !(S.integer.size() == 1 && S.integer[0] == 0)) {
+            int m = S.integer.size();
+            int e = m - 1;
+            int initial_exponent = e / 2;
+            x0 = BigNum("1e" + std::to_string(initial_exponent));
+        } else {
+            int k = 0;
+            while (k < S.decimal.size() && S.decimal[k] == 0) {
+                ++k;
+            }
+            if (k == S.decimal.size()) {
+                return BigNum(0);
+            }
+            int e = -(k + 1);
+            int initial_exponent = e / 2;
+            x0 = BigNum("1e" + std::to_string(initial_exponent));
+        }
+
+        const int sqrt_decimal_limit = DECIMAL_LIMIT;
+        const BigNum threshold("1e-" + std::to_string(sqrt_decimal_limit));
+
+        BigNum x = x0;
+        BigNum prev;
+        const int max_iterations = 100;
+        for (int i = 0; i < max_iterations; ++i) {
+            prev = x;
+            BigNum s_div_x = S.divide(x, sqrt_decimal_limit);
+            x = (x + s_div_x).divide(BigNum(2), sqrt_decimal_limit);
+            x.decimal.resize(sqrt_decimal_limit);
+            x.normalize();
+
+            BigNum diff = (x - prev).abs();
+            if (diff.compare_abs(threshold) == -1) {
+                break;
+            }
+        }
+
+        x.decimal.resize(DECIMAL_LIMIT);
+        x.normalize();
+        return x;
+    }
+
+    BigNum pow(const BigNum& exponent) const {
+        if (exponent.is_zero()) {
+            return BigNum(1);
+        }
+        if (this->is_zero()) {
+            if (exponent.is_negative) {
+                throw std::runtime_error("Zero to a negative power is undefined.");
+            }
+            return BigNum(0);
+        }
+
+        BigNum abs_exp = exponent.abs();
+        BigNum result(1);
+        BigNum base = *this;
+
+        while (abs_exp > BigNum(0)) {
+            if (abs_exp % BigNum(2) == BigNum(1)) {
+                result = result * base;
+            }
+            base = base * base;
+            abs_exp = (abs_exp / BigNum(2)).trunc();
+        }
+
+        if (exponent.is_negative) {
+            return BigNum(1) / result;
+        }
+        return result;
     }
 
 private:

@@ -28,7 +28,7 @@ public:
             } else if (current == '"') {
                 tokens.push_back(string());
             } else if (current == '.' || current == '=' || current == '+' ||
-                       current == '*' || current == '/' || current == '<' ||
+                       current == '*' || current == '/' || current == '<' || current == '^' ||
                        current == '>' || current == '!' || current == '-' || current == '%') {
                 tokens.push_back(operator_());
             } else if (current == '(' || current == ')' || current == '{' || current == ':' ||
@@ -96,10 +96,13 @@ private:
 
     Token number() {
         std::string value;
-        bool hasDot = false;
-        while (std::isdigit(peek()) || (peek() == '.' && !hasDot) || (peek() == 'e') || (peek() == 'E')) {
+        bool hasDot = false, hasE = false;
+        while (std::isdigit(peek()) || (peek() == '.' && !hasDot) || (peek() == 'e' && !hasE) || (peek() == 'E' && !hasE) || (peek() == '+' && hasE) || (peek() == '-' && hasE)) {
             if (peek() == '.') {
                 hasDot = true;
+            }
+            if (peek() == 'e' || peek() == 'E') {
+                hasE = true;
             }
             value += peek();
             consume();
@@ -145,7 +148,7 @@ private:
         std::string op;
         char current = peek();
         if (current == '.' || current == '=' || current == '+' ||
-            current == '*' || current == '/' || current == '<' ||
+            current == '*' || current == '/' || current == '<' || current == '^' ||
             current == '>' || current == '!' || current == '-' || current == '%') {
             op += current;
             consume();

@@ -314,13 +314,14 @@ private:
         Value left = operandStack.top(); operandStack.pop();
         std::string op = std::get<std::string>(instr.operand);
 
-        if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+        if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%" || op == "^") {
             BigNum result;
             if (op == "+") result = left.bignumValue + right.bignumValue;
             else if (op == "-") result = left.bignumValue - right.bignumValue;
             else if (op == "*") result = left.bignumValue * right.bignumValue;
             else if (op == "/") result = left.bignumValue / right.bignumValue;
             else if (op == "%") result = left.bignumValue % right.bignumValue;
+            else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
             else {
                 throwRuntimeError("Unknown binary operator: " + op);
             }
@@ -475,6 +476,18 @@ private:
             return listErase(args);
         } else if (name == "insert") {
             return listInsert(args);
+        } else if (name == "floor") {
+            return builtinMathFloor(args);
+        } else if (name == "ceil") {
+            return builtinMathCeil(args);
+        } else if (name == "abs") {
+            return builtinMathAbs(args);
+        } else if (name == "pow") {
+            return builtinMathPow(args);
+        } else if (name == "round") {
+            return builtinMathRound(args);
+        } else if (name == "sqrt") {
+            return builtinMathSqrt(args);
         } else {
             throwIdentifierError("Undefined builtin function: " + name);
         }

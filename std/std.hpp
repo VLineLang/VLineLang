@@ -7,5 +7,6 @@
 #include "general/lists.hpp"
 #include "general/type.hpp"
 #include "general/IO.hpp"
+#include "maths/math.hpp"
 
 #endif
