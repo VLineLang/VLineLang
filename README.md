@@ -197,7 +197,7 @@ class Person {
         self.age = age
     }
     fn say_hello() {
-        print("Hello, my name is ", self.name, " and I am ", self.age, " years old.")
+        print("Hello, my name is ", self.name, " and I am ", self.age, " years old.\n")
     }
 }
 
@@ -208,12 +208,12 @@ class Student : Person {
         self.grade = grade
     }
     fn say_hello() {
-        print("Hello, I am a student. My name is ", self.name, " and I am ", self.age, " years old. My grade is ", self.grade, ".")
+        print("Hello, I am a student. My name is ", self.name, " and I am ", self.age, " years old. My grade is ", self.grade, ".\n")
     }
 }
 
-people = Person("Alice", 20)
-student = Student("Bob", 18, 7)
+people = new Person("Alice", 20)
+student = new Student("Bob", 18, 7)
 
 people.say_hello()
 student.say_hello()
