@@ -212,10 +212,10 @@ private:
                 }
                 ClassDeclaration* parent = classes[cls->parentName];
                 for (auto member : parent->members) {
-                    cls->members[member.first] = member.second;
+                    if (!cls->members.count(member.first)) cls->members[member.first] = member.second;
                 }
                 for (auto func : parent->functions) {
-                    cls->functions[func.first] = func.second;
+                    if (!cls->functions.count(func.first)) cls->functions[func.first] = func.second;
                 }
             }
             classes[cls->className] = cls;
