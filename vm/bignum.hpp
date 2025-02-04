@@ -22,6 +22,12 @@ private:
     vector<int> integer;
     vector<int> decimal;
 
+    BigNum trunc() const {
+        BigNum result = *this;
+        result.decimal.clear();
+        result.normalize();
+        return result;
+    }
 
     static void fft(vector<complex<double>>& a, bool invert) {
         int n = a.size();
@@ -461,6 +467,21 @@ public:
         quotient.is_negative = is_negative ^ rhs.is_negative;
         quotient.normalize();
         return quotient;
+    }
+
+    BigNum operator%(const BigNum& rhs) const {
+        if (rhs == 0) {
+            throwZeroDivisionError("Modulo by zero");
+        }
+        BigNum q = *this / rhs;
+        BigNum q_trunc = q.trunc();
+        BigNum remainder = *this - q_trunc * rhs;
+        remainder.is_negative = this->is_negative;
+        remainder.normalize();
+        if (remainder.is_zero()) {
+            remainder.is_negative = false;
+        }
+        return remainder;
     }
 
     BigNum abs() const {

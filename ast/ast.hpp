@@ -192,14 +192,9 @@ public:
 
     ClassDeclaration(const std::string& name,
                      const std::map<std::string, Assignment*>& m,
-                     const std::map<std::string, FunctionDeclaration*>& f)
-            : className(name), members(m), functions(f), parentName("self") {}
-
-    ClassDeclaration(const std::string& name,
-                     const std::map<std::string, Assignment*>& m,
                      const std::map<std::string, FunctionDeclaration*>& f,
-                     const std::string& parentName)
-            : className(name), members(m), functions(f), parentName(parentName) {}
+                     const std::string& pn = "self")
+            : className(name), members(m), functions(f), parentName(pn) {}
 
     StatementType type() const override { return CLASS_DECLARATION; }
 };
@@ -218,7 +213,9 @@ public:
 
 struct NewExpression : public Expression {
     std::string className;
-    NewExpression(const std::string& name) : className(name) {}
+    std::vector<Expression*> args_init;
+    NewExpression(const std::string& name,
+                  const std::vector<Expression*>& args = {}) : className(name), args_init(args) {}
 };
 
 struct MemberAccess : public Expression {

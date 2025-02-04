@@ -29,7 +29,7 @@ public:
                 tokens.push_back(string());
             } else if (current == '.' || current == '=' || current == '+' ||
                        current == '*' || current == '/' || current == '<' ||
-                       current == '>' || current == '!' || current == '-') {
+                       current == '>' || current == '!' || current == '-' || current == '%') {
                 tokens.push_back(operator_());
             } else if (current == '(' || current == ')' || current == '{' || current == ':' ||
                        current == '}' || current == ',' || current == '[' || current == ']') {
@@ -146,7 +146,7 @@ private:
         char current = peek();
         if (current == '.' || current == '=' || current == '+' ||
             current == '*' || current == '/' || current == '<' ||
-            current == '>' || current == '!') {
+            current == '>' || current == '!' || current == '-' || current == '%') {
             op += current;
             consume();
             if (op == "=" || op == "!" || op == "<" || op == ">") {
@@ -155,10 +155,6 @@ private:
                     consume();
                 }
             }
-            return {TOKEN_OPERATOR, op};
-        } else if (current == '-') {
-            op += current;
-            consume();
             return {TOKEN_OPERATOR, op};
         } else {
             throwSyntaxError("Unexpected character: " + std::string(1, current));

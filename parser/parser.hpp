@@ -324,7 +324,7 @@ private:
 
     Expression* term() {
         Expression* left = factor();
-        while (peek().type == TOKEN_OPERATOR && (peek().value == "*" || peek().value == "/")) {
+        while (peek().type == TOKEN_OPERATOR && (peek().value == "*" || peek().value == "/" || peek().value == "%")) {
             Token op = peek();
             consume();
             Expression* right = factor();
@@ -450,6 +450,21 @@ private:
             Token className = peek();
             if (className.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected class name after new");
             consume();
+            if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
+                consume();
+                std::vector<Expression*> args;
+                while (true) {
+                    if (peek().type == TOKEN_PUNCTUATION && peek().value == ")") {
+                        break;
+                    }
+                    if (!args.empty() && peek().type == TOKEN_PUNCTUATION && peek().value == ",") {
+                        consume();
+                    }
+                    args.push_back(expression());
+                }
+                consume();
+                return new NewExpression(className.value, args);
+            }
             return new NewExpression(className.value);
         } else {
             throwSyntaxError("Unexpected token in primary expression: " + token.value);

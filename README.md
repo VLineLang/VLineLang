@@ -1,7 +1,7 @@
 <div align="center">
 
 # ⚡ VLineLang
-A modern, clean, fast and powerful high-level programming language.
+A modern, concise, fast, and powerful high-level programming language.
 
 ![Last Commit](https://img.shields.io/github/last-commit/VLineLang/VLineLang)
 ![License](https://img.shields.io/github/license/VLineLang/VLineLang)
@@ -9,7 +9,7 @@ A modern, clean, fast and powerful high-level programming language.
 ![Forks](https://img.shields.io/github/forks/VLineLang/VLineLang)
 ![Commit](https://img.shields.io/github/commit-activity/m/VLineLang/VLineLang)
 
-[>> Chinese README >>](README_zh.md)
+[>> Chinese Documentation >>](README_zh.md)
 
 </div>
 
@@ -22,7 +22,7 @@ A modern, clean, fast and powerful high-level programming language.
 - **Member Functions**:
     - `list.append(value)`: Appends an element to the end of the list.
     - `list.insert(index, value)`: Inserts an element at the specified position.
-    - `list.erase(begin, end)`: Deletes elements within the specified range in the list.
+    - `list.erase(begin, end)`: Removes elements within the specified range from the list.
 
 - **Built-in Functions**:
     - `print(value)`: Prints a value to the console.
@@ -33,18 +33,22 @@ A modern, clean, fast and powerful high-level programming language.
     - `time()`: Returns the current timestamp.
     - `sleep(ms)`: Pauses execution for the specified number of milliseconds.
     - `system(command)`: Executes a system command.
-    - `exit(code)`: Exits the program and returns the specified status code.
+    - `exit(code)`: Exits the program with the specified status code.
     - `read(filename)`: Reads the contents of a file.
     - `write(filename, content)`: Writes content to a file.
+    - `append(list, value)`: Appends an element to the end of the list.
+    - `insert(list, index, value)`: Inserts an element at the specified position.
+    - `erase(list, begin, end)`: Removes elements within the specified range from the list.
 
 ### Keywords
 
 - **Control Structures**:
-    - `if`: Conditional judgment.
-    - `else`: The negative branch of a conditional judgment.
+    - `if`: Conditional statement.
+    - `else`: Negation branch of a conditional statement.
     - `while`: Loop structure.
+    - `for`: Loop structure.
     - `break`: Breaks out of a loop.
-    - `continue`: Skips the current loop iteration.
+    - `continue`: Skips the current iteration of a loop.
 
 - **Function Definitions**:
     - `fn`: Defines a function.
@@ -68,11 +72,12 @@ A modern, clean, fast and powerful high-level programming language.
         - Numbers (`Number`): Integers and floating-point numbers.
         - Strings (`String`): Text data.
         - Lists (`List`): Ordered collections.
-        - Null values (`null`): Represents no value.
+        - Null (`null`): Represents no value.
+        - Objects (`Object`): Classes.
 
 - **Control Structures**:
-    - Supports conditional judgments (`if`, `else`).
-    - Supports loops (`while`).
+    - Supports conditional statements (`if`, `else`).
+    - Supports loops (`while`, `for`).
     - Supports breaking out of loops (`break`, `continue`).
 
 - **Functions**:
@@ -80,9 +85,16 @@ A modern, clean, fast and powerful high-level programming language.
     - Supports recursion and nested functions.
     - Supports function parameters and return values.
 
-- **Modularity**:
-    - Supports importing external files via `import`.
-    - Supports modular programming.
+- **Object-Oriented (Class) Support**:
+    - Supports class definition and instantiation.
+    - Supports class member variables and member functions.
+    - Supports inheritance and polymorphism.
+
+- **Big Number Support**:
+    - The default built-in type `number` supports big number operations.
+    - Supports arithmetic operations (including modulo) and comparison operations.
+    - Integer precision is infinite; floating-point precision is up to 20 decimal places (i.e., `1e-20`).
+    - Fast performance with constant-time operations.
 
 ## 🛠️ Quick Start
 
@@ -100,7 +112,7 @@ VLineLang is currently in the development stage. You can run it by following the
 
 2. Compile the project:
    ```bash
-   g++ -std=c++17 -o vline_lang main.cpp
+   cmake .
    ```
 
 3. Run the compiler:
@@ -108,7 +120,7 @@ VLineLang is currently in the development stage. You can run it by following the
    ./vline_lang
    ```
 
-**You can also get the latest version from the Release page.**
+**You can also download the latest version from the Release page.**
 
 ### Running
 
@@ -126,7 +138,7 @@ You can run VLineLang code in the following ways:
    ```
    By specifying a script file, VLineLang will execute the code in the file.
 
-3. **Command Line Arguments**:
+3. **Command-Line Arguments**:
     - `--in <filename>`: Reads input from the specified file.
     - `--out <filename>`: Redirects output to the specified file.
 
@@ -143,7 +155,7 @@ list = [1, 2, 3]
 
 ### Control Structures
 
-VLineLang supports common control structures such as `if` and `while` loops:
+VLineLang supports common control structures such as `if`, `while` loops, and `for` loops:
 ```vl
 if x > 10 {
     print("x is greater than 10")
@@ -155,11 +167,15 @@ while x > 0 {
     print(x)
     x = x - 1
 }
+
+for i in range(0, 10) {
+    print(i)
+}
 ```
 
 ### Functions
 
-VLineLang supports function definition and invocation. Functions can return values and be called recursively:
+VLineLang supports function definition and invocation, with support for return values and recursion:
 ```vl
 fn fact(n) {
     if n <= 1 {
@@ -171,23 +187,53 @@ fn fact(n) {
 print(fact(5))  // Outputs 120
 ```
 
+### Class Support
+
+VLineLang supports class definition and instantiation, with support for inheritance and polymorphism:
+```vl
+class Person {
+    fn __init__(name, age) {
+        self.name = name
+        self.age = age
+    }
+    fn say_hello() {
+        print("Hello, my name is ", self.name, " and I am ", self.age, " years old.")
+    }
+}
+
+class Student : Person {
+    fn __init__(name, age, grade) {
+        self.name = name
+        self.age = age
+        self.grade = grade
+    }
+    fn say_hello() {
+        print("Hello, I am a student. My name is ", self.name, " and I am ", self.age, " years old. My grade is ", self.grade, ".")
+    }
+}
+
+people = Person("Alice", 20)
+student = Student("Bob", 18, 7)
+
+people.say_hello()
+student.say_hello()
+```
+
 ## TODO List
 
-- [x] for loops
-- [x] classes
-- [ ] exception handling
-- [ ] standard library support
-- [ ] performance optimization
-- [ ] documentation improvement
-- [ ] C/C++ embedding
+- [ ] Exception Handling
+- [ ] Standard Library Support
+- [ ] Performance Optimization
+- [ ] Documentation Improvement
+- [ ] C/C++ Embedding
 
 ## 🤝 Contribution Guidelines
 
-We welcome all developers to contribute to VLineLang! If you are interested in contributing code or making suggestions, please follow these steps:
+We welcome all developers to contribute to VLineLang! If you are interested in contributing code or suggestions, please follow these steps:
 
-1. **Fork the Repository**: Fork this project on GitHub.
+1. **Fork the Repository**: Fork the project on GitHub.
 2. **Create a Branch**: Create a new branch for your feature or fix.
-3. **Make Changes**: Make changes on the branch and commit them.
+3. **Commit Changes**: Make changes and commit them in your branch.
 4. **Submit a PR**: Submit a Pull Request to the main repository, describing your changes.
 
 **Please ensure your code adheres to the project's coding standards and passes all tests.**

@@ -28,15 +28,6 @@ enum BytecodeOp {
     LABEL              // 标签（用于跳转目标）
 };
 
-enum CompareOp {
-    CMP_LT,
-    CMP_LE,
-    CMP_EQ,
-    CMP_NE,
-    CMP_GT,
-    CMP_GE
-};
-
 struct CallFunctionOperand {
     std::string funcName;
     int argCount;
@@ -44,7 +35,7 @@ struct CallFunctionOperand {
 
 struct Bytecode {
     BytecodeOp op;
-    std::variant<BigNum, std::string, CompareOp, CallFunctionOperand> operand;
+    std::variant<BigNum, std::string, CallFunctionOperand> operand;
 };
 
 using BytecodeProgram = std::vector<Bytecode>;

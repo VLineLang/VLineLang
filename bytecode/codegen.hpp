@@ -285,15 +285,14 @@ private:
             std::string varName;
             if (flag_of_member) {
                 varName = funcCall->name.substr(0, funcCall->name.find('.'));
-                Expression * object = new Identifier(varName);
-                generateExpression(object, program);
+                program.push_back({LOAD_VAR, varName});
                 funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
-            }
-            for (auto arg : funcCall->arguments) {
-                generateExpression(arg, program);
             }
             if (!flag_of_member || funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") { --flag_of_member; }
             else program.push_back({LOAD_CONST, varName});
+            for (auto arg : funcCall->arguments) {
+                generateExpression(arg, program);
+            }
             program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
             if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {
                 program.push_back({STORE_VAR, varName});
@@ -337,6 +336,15 @@ private:
                         funcProgram.push_back({RETURN, 0});
                     }
                     func.second->bytecode = funcProgram;
+                }
+
+                if (!newExpr->args_init.empty()) {
+                    program.push_back({LOAD_VAR, tempVar});
+                    program.push_back({LOAD_CONST, "__temp_obj__"});
+                    for (auto arg : newExpr->args_init) {
+                        generateExpression(arg, program);
+                    }
+                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
                 }
 
                 program.push_back({LOAD_VAR, tempVar});

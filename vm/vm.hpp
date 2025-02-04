@@ -314,12 +314,13 @@ private:
         Value left = operandStack.top(); operandStack.pop();
         std::string op = std::get<std::string>(instr.operand);
 
-        if (op == "+" || op == "-" || op == "*" || op == "/") {
+        if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
             BigNum result;
             if (op == "+") result = left.bignumValue + right.bignumValue;
             else if (op == "-") result = left.bignumValue - right.bignumValue;
             else if (op == "*") result = left.bignumValue * right.bignumValue;
             else if (op == "/") result = left.bignumValue / right.bignumValue;
+            else if (op == "%") result = left.bignumValue % right.bignumValue;
             else {
                 throwRuntimeError("Unknown binary operator: " + op);
             }
@@ -401,14 +402,13 @@ private:
             if (self.functions.count(op.funcName)) {
                 FunctionDeclaration* method = self.functions[op.funcName];
 
-
                 Frame newFrame(method->bytecode, &frames.top());
 
                 newFrame.locals["self"] = self;
 
                 for (size_t i = 0; i < method->parameters.size(); ++i) {
-                    if (i < args.size()) {
-                        newFrame.locals[method->parameters[i]] = args[i];
+                    if (i + 2 < args.size()) {
+                        newFrame.locals[method->parameters[i]] = args[i + 2];
                     }
                 }
                 frames.push(newFrame);
