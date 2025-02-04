@@ -57,6 +57,9 @@ void printBytecode(const Bytecode& bytecode) {
         case CLEAR:
             std::cout << "CLEAR";
             break;
+        case LABEL:
+            std::cout << "LABEL";
+            break;
         default:
             std::cout << "Unknown opcode";
             break;

@@ -147,37 +147,32 @@ private:
 
             loopContextStack.pop_back();
         }
-
         else if (auto whileStmt = dynamic_cast<WhileStatement*>(stmt)) {
-
             LoopContext ctx;
             ctx.breakLabel = createLabel();
             ctx.continueLabel = createLabel();
             loopContextStack.push_back(ctx);
 
-
             int loopStartLabel = createLabel();
-            program.push_back(Bytecode{LABEL, loopStartLabel});
+            program.push_back({LABEL, loopStartLabel});
             labelAddresses[loopStartLabel] = program.size() - 1;
 
-
             generateExpression(whileStmt->condition, program);
-            program.push_back(Bytecode{JUMP_IF_FALSE, ctx.breakLabel});
+            program.push_back({JUMP_IF_FALSE, ctx.breakLabel});
             unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
-
 
             for (Statement* bodyStmt : whileStmt->body) {
                 generateStatement(bodyStmt, program);
             }
 
+            program.push_back({LABEL, ctx.continueLabel});
+            labelAddresses[ctx.continueLabel] = program.size() - 1;
 
-            program.push_back(Bytecode{JUMP, loopStartLabel});
+            program.push_back({JUMP, loopStartLabel});
             unresolvedJumps.push_back({program.size() - 1, loopStartLabel});
 
-
-            program.push_back(Bytecode{LABEL, ctx.breakLabel});
+            program.push_back({LABEL, ctx.breakLabel});
             labelAddresses[ctx.breakLabel] = program.size();
-
 
             loopContextStack.pop_back();
         }
@@ -236,7 +231,7 @@ private:
                 throwSyntaxError("'continue' outside loop");
             }
             LoopContext& ctx = loopContextStack.back();
-            program.push_back(Bytecode{JUMP, ctx.continueLabel});
+            program.push_back({JUMP, ctx.continueLabel});
             unresolvedJumps.push_back({program.size() - 1, ctx.continueLabel});
         }
         else if (dynamic_cast<BreakStatement*>(stmt)) {
@@ -244,7 +239,7 @@ private:
                 throwSyntaxError("'break' outside loop");
             }
             LoopContext& ctx = loopContextStack.back();
-            program.push_back(Bytecode{JUMP, ctx.breakLabel});
+            program.push_back({JUMP, ctx.breakLabel});
             unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
         }
     }
