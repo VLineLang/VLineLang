@@ -251,7 +251,7 @@ private:
         } else if (auto sval = std::get_if<std::string>(&instr.operand)) {
             operandStack.push(Value(*sval));
         } else {
-            throwRuntimeError("Invalid LOAD_CONST operand");
+            operandStack.push(Value());
         }
     }
 

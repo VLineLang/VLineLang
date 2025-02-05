@@ -178,18 +178,20 @@ private:
         }
         else if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(stmt)) {
             functions[funcDecl->name] = funcDecl;
+
+            CodeGen funcGen(classes);
+            funcGen.setReplMode(isReplMode);
+            funcGen.functions = functions;
+            funcGen.inFunction = true;
+
             BytecodeProgram funcProgram;
-
-            inFunction = true;
             for (Statement* bodyStmt : funcDecl->body) {
-                generateStatement(bodyStmt, funcProgram);
+                funcGen.generateStatement(bodyStmt, funcProgram);
             }
-            inFunction = false;
-
             if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                funcProgram.push_back({LOAD_CONST, 0.0});
                 funcProgram.push_back({RETURN, 0});
             }
+            funcGen.resolveLabels(funcProgram);
             funcDecl->bytecode = funcProgram;
         }
         else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
@@ -250,6 +252,9 @@ private:
         }
         else if (auto strLit = dynamic_cast<StringLiteral*>(expr)) {
             program.push_back({LOAD_CONST, strLit->value});
+        }
+        else if (dynamic_cast<NullLiteral*>(expr)) {
+            program.push_back({LOAD_CONST});
         }
         else if (auto listLit = dynamic_cast<ListLiteral*>(expr)) {
             for (auto element : listLit->elements) {
@@ -316,35 +321,41 @@ private:
                     }
                 }
 
+
                 for (auto func : cls->functions) {
                     program.push_back({LOAD_VAR, tempVar});
                     program.push_back({LOAD_CONST, func.second->name});
+
+
+                    CodeGen memberFuncGen(classes);
+                    memberFuncGen.functions = this->functions;
+                    memberFuncGen.inFunction = true;
+                    BytecodeProgram funcProgram;
+                    for (Statement* bodyStmt : func.second->body) {
+                        memberFuncGen.generateStatement(bodyStmt, funcProgram);
+                    }
+                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
+                        funcProgram.push_back({LOAD_CONST, BigNum(0)});
+                        funcProgram.push_back({RETURN, 0});
+                    }
+                    memberFuncGen.resolveLabels(funcProgram);
+                    func.second->bytecode = funcProgram;
+
+
                     program.push_back({LOAD_FUNC, cls->className + "." + func.second->name});
                     program.push_back({STORE_MEMBER_FUNC});
                     program.push_back({STORE_VAR, tempVar});
 
                     functions[cls->className + "." + func.second->name] = func.second;
-                    BytecodeProgram funcProgram;
-
-                    inFunction = true;
-                    for (Statement* bodyStmt : func.second->body) {
-                        generateStatement(bodyStmt, funcProgram);
-                    }
-                    inFunction = false;
-                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                        funcProgram.push_back({LOAD_CONST, 0.0});
-                        funcProgram.push_back({RETURN, 0});
-                    }
-                    func.second->bytecode = funcProgram;
                 }
+
 
                 if (!newExpr->args_init.empty()) {
                     program.push_back({LOAD_VAR, tempVar});
-                    program.push_back({LOAD_CONST, "__temp_obj__"});
                     for (auto arg : newExpr->args_init) {
                         generateExpression(arg, program);
                     }
-                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
+                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 1)}});
                 }
 
                 program.push_back({LOAD_VAR, tempVar});
