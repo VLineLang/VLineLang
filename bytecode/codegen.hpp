@@ -321,41 +321,35 @@ private:
                     }
                 }
 
-
                 for (auto func : cls->functions) {
                     program.push_back({LOAD_VAR, tempVar});
                     program.push_back({LOAD_CONST, func.second->name});
-
-
-                    CodeGen memberFuncGen(classes);
-                    memberFuncGen.functions = this->functions;
-                    memberFuncGen.inFunction = true;
-                    BytecodeProgram funcProgram;
-                    for (Statement* bodyStmt : func.second->body) {
-                        memberFuncGen.generateStatement(bodyStmt, funcProgram);
-                    }
-                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                        funcProgram.push_back({LOAD_CONST, BigNum(0)});
-                        funcProgram.push_back({RETURN, 0});
-                    }
-                    memberFuncGen.resolveLabels(funcProgram);
-                    func.second->bytecode = funcProgram;
-
-
                     program.push_back({LOAD_FUNC, cls->className + "." + func.second->name});
                     program.push_back({STORE_MEMBER_FUNC});
                     program.push_back({STORE_VAR, tempVar});
 
                     functions[cls->className + "." + func.second->name] = func.second;
-                }
+                    BytecodeProgram funcProgram;
 
+                    inFunction = true;
+                    for (Statement* bodyStmt : func.second->body) {
+                        generateStatement(bodyStmt, funcProgram);
+                    }
+                    inFunction = false;
+                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
+                        funcProgram.push_back({LOAD_CONST, 0.0});
+                        funcProgram.push_back({RETURN, 0});
+                    }
+                    func.second->bytecode = funcProgram;
+                }
 
                 if (!newExpr->args_init.empty()) {
                     program.push_back({LOAD_VAR, tempVar});
+                    program.push_back({LOAD_CONST, "__temp_obj__"});
                     for (auto arg : newExpr->args_init) {
                         generateExpression(arg, program);
                     }
-                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 1)}});
+                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
                 }
 
                 program.push_back({LOAD_VAR, tempVar});
