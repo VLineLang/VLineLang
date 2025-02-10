@@ -25,6 +25,9 @@ A modern, concise, fast, and powerful high-level programming language.
     - `list.erase(begin, end)`: Removes elements within the specified range from the list.
 
 - **Built-in Functions**:
+    - `number(value)`: Converts a value to the number type.
+    - `string(value)`: Converts a value to the string type.
+    - `list(value)`: Converts a value to the list type.
     - `print(value)`: Prints a value to the console.
     - `input(prompt)`: Reads a value from user input.
     - `len(value)`: Returns the length of a string or list.
@@ -222,7 +225,6 @@ student.say_hello()
 ## TODO List
 
 - [ ] Exception Handling
-- [ ] Standard Library Support
 - [ ] Performance Optimization
 - [ ] Documentation Improvement
 - [ ] C/C++ Embedding
