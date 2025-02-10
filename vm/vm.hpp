@@ -488,6 +488,12 @@ private:
             return builtinMathRound(args);
         } else if (name == "sqrt") {
             return builtinMathSqrt(args);
+        } else if (name == "list") {
+            return builtinList(args);
+        } else if (name == "str") {
+            return builtinStr(args);
+        } else if (name == "number") {
+            return builtinNumber(args);
         } else {
             throwIdentifierError("Undefined builtin function: " + name);
         }
