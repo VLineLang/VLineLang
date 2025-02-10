@@ -23,6 +23,8 @@ private:
     size_t position;
 
     Token peek(int offset = 0) {
+        if (position + offset >= tokens.size())
+            throwSyntaxError("Unexpected end of file");
         return tokens[position + offset];
     }
 
