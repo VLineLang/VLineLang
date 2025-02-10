@@ -26,7 +26,7 @@
 
 - **内置函数**：
     - `number(value)`：将值转换为数字类型。
-    - `string(value)`：将值转换为字符串类型。
+    - `str(value)`：将值转换为字符串类型。
     - `list(value)`：将值转换为列表类型。
     - `print(value)`：打印值到控制台。
     - `input(prompt)`：从用户输入读取值。

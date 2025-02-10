@@ -26,7 +26,7 @@ A modern, concise, fast, and powerful high-level programming language.
 
 - **Built-in Functions**:
     - `number(value)`: Converts a value to the number type.
-    - `string(value)`: Converts a value to the string type.
+    - `str(value)`: Converts a value to the string type.
     - `list(value)`: Converts a value to the list type.
     - `print(value)`: Prints a value to the console.
     - `input(prompt)`: Reads a value from user input.
