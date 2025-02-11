@@ -293,13 +293,14 @@ private:
                 program.push_back({LOAD_VAR, varName});
                 funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
             }
+            bool fom = flag_of_member;
             if (!flag_of_member || funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") { --flag_of_member; }
             else program.push_back({LOAD_CONST, varName});
             for (auto arg : funcCall->arguments) {
                 generateExpression(arg, program);
             }
             program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
-            if (funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") {
+            if ((funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") && fom) {
                 program.push_back({STORE_VAR, varName});
             }
         }

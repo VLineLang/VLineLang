@@ -1,8 +1,8 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#define VLINE_VERSION "0.9.0-alpha.1"
-#define VLINE_PUBLISH "Feb. 10th, 2025"
+#define VLINE_VERSION "0.9.1-alpha.1"
+#define VLINE_PUBLISH "Feb. 11th, 2025"
 #define VLINE_COMPILER "GNU GCC/ISO C++17"
 
 #include <string>
