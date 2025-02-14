@@ -338,7 +338,6 @@ private:
                     }
                     inFunction = false;
                     if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                        funcProgram.push_back({LOAD_CONST, 0.0});
                         funcProgram.push_back({RETURN, 0});
                     }
                     func.second->bytecode = funcProgram;
