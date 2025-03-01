@@ -6,6 +6,7 @@ std::vector<Token> tokens;
 std::vector<Statement*> statements;
 VM globalVM;
 std::map<std::string, ClassDeclaration*> classes;
+std::map<std::string, int> variables;
 
 void printBytecode(const Bytecode& bytecode) {
     switch (bytecode.op) {
@@ -95,7 +96,7 @@ void printBytecode(const Bytecode& bytecode) {
 
 void interpreters() {
     try {
-        CodeGen codegen(classes);
+        CodeGen codegen(classes, variables);
         codegen.setReplMode(true);
         BytecodeProgram mainProgram = codegen.generate(statements);
 
@@ -105,6 +106,7 @@ void interpreters() {
         }
 
         classes = codegen.getClasses();
+        variables = codegen.getVars();
 
         if (globalVM.frames.empty()) {
             globalVM.frames.push(VM::Frame(mainProgram));
@@ -114,9 +116,9 @@ void interpreters() {
             globalFrame.pc = 0;
         }
 
-//        for (auto bytecode : mainProgram) {
-//            printBytecode(bytecode);
-//        }
+       for (auto bytecode : mainProgram) {
+           printBytecode(bytecode);
+       }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {

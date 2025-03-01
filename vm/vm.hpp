@@ -17,15 +17,16 @@
 class VM {
 public:
     struct Frame {
-        std::map<std::string, Value> locals;
+        std::vector<Value> locals;
         Frame* parent;
         BytecodeProgram program;
         size_t pc;
         Value returnValue;
 
-
         Frame(const BytecodeProgram& program, Frame* parent = nullptr)
-                : program(program), pc(0), parent(parent) {}
+                : program(program), pc(0), parent(parent) {
+            locals.resize(1000);
+        }
     };
 
     std::stack<Frame> frames;
@@ -45,9 +46,10 @@ public:
             if (frame.locals.empty()) {
                 std::cout << "    <empty>" << std::endl;
             } else {
-                for (const auto& pair : frame.locals) {
-                    std::cout << "    " << pair.first << std::endl;
-
+                for (int i = 0; i < frame.locals.size(); ++i) {
+                    std::cout << "    " << i << ": ";
+                    printValue(frame.locals[i]);
+                    std::cout << std::endl;
                 }
             }
 
@@ -280,30 +282,32 @@ private:
     }
 
     void handleLoadVar(const Bytecode& instr, Frame& frame) {
-        const std::string& name = std::get<std::string>(instr.operand);
-        Frame* currentFrame = &frame;
-
-
-        while (currentFrame != nullptr) {
-            if (currentFrame->locals.count(name)) {
-                operandStack.push(currentFrame->locals[name]);
-                return;
-            }
-            currentFrame = currentFrame->parent;
+        const BigNum& idx = std::get<BigNum>(instr.operand);
+        size_t index = idx.get_ll();
+        
+        if (index >= frame.locals.size()) {
+            frame.locals.resize(index + 1);
         }
-
-
-        throwIdentifierError("Undefined variable '" + name + "'");
+        
+        operandStack.push(frame.locals[index]);
     }
 
     void handleStoreVar(const Bytecode& instr, Frame& frame) {
-        const std::string& name = std::get<std::string>(instr.operand);
+        const BigNum& idx = std::get<BigNum>(instr.operand);
+        size_t index = idx.get_ll();
+        
         if (operandStack.empty()) {
             throwRuntimeError("Stack underflow in store operation");
         }
+        
         Value value = operandStack.top();
         operandStack.pop();
-        frame.locals[name] = value;
+        
+        if (index >= frame.locals.size()) {
+            frame.locals.resize(index + 1);
+        }
+        
+        frame.locals[index] = value;
     }
 
     void handleBinaryOp(const Bytecode& instr) {
@@ -405,18 +409,19 @@ private:
 
                 Frame newFrame(method->bytecode, &frames.top());
 
-                newFrame.locals["self"] = self;
+                newFrame.locals[0] = self;
 
                 for (size_t i = 0; i < method->parameters.size(); ++i) {
                     if (i + 2 < args.size()) {
-                        newFrame.locals[method->parameters[i]] = args[i + 2];
+                        newFrame.locals[i + 1] = args[i + 2];
                     }
                 }
                 frames.push(newFrame);
                 result = execute();
 
-                for (const auto& it : frames.top().locals["self"].objectMembers) {
-                    currFrame.locals[className].objectMembers[it.first] = it.second;
+                Value& selfValue = frames.top().locals[0];
+                for (const auto& it : selfValue.objectMembers) {
+                    currFrame.locals[1].objectMembers[it.first] = it.second;
                 }
 
                 frames.pop();
@@ -433,7 +438,7 @@ private:
             Frame newFrame(func->bytecode, &frames.top());
             for (size_t i = 0; i < func->parameters.size(); ++i) {
                 if (i < args.size()) {
-                    newFrame.locals[func->parameters[i]] = args[i];
+                    newFrame.locals[i] = args[i];
                 }
             }
             frames.push(newFrame);

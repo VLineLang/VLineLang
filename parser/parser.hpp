@@ -471,6 +471,8 @@ private:
         } else {
             throwSyntaxError("Unexpected token in primary expression: " + token.value);
         }
+
+        return nullptr;
     }
 };
 

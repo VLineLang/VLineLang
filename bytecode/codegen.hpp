@@ -40,8 +40,15 @@ public:
         return classes;
     }
 
-    CodeGen(std::map<std::string, ClassDeclaration*> cls) {
+    std::map<std::string, int> getVars() const {
+        return variables;
+    }
+
+    CodeGen(std::map<std::string, ClassDeclaration*> cls, std::map<std::string, int>& vars = std::map<std::string, int>()) {
         classes = cls;
+        variables = vars;
+        varIndexCounter = vars.empty() ? 0 : std::max_element(vars.begin(), vars.end(),
+            [](const auto& p1, const auto& p2) { return p1.second < p2.second; })->second + 1;
     }
 
 private:
@@ -52,9 +59,8 @@ private:
     std::map<std::string, int> labels;
     std::map<std::string, ClassDeclaration*> classes;
     int labelCounter = 0;
-
+    int varIndexCounter = 0;
     int tempVarCounter = 0;
-
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
         program.push_back({CLEAR});
 
@@ -64,10 +70,10 @@ private:
                 generateExpression(assignment->index, program);
                 generateExpression(assignment->value, program);
                 program.push_back({STORE_SUBSCRIPT});
-                program.push_back({STORE_VAR, assignment->target});
+                program.push_back({STORE_VAR, BigNum(getVarIndex(assignment->target))});
             } else {
                 generateExpression(assignment->value, program);
-                program.push_back({STORE_VAR, assignment->target});
+                program.push_back({STORE_VAR, BigNum(getVarIndex(assignment->target))});
             }
         }
         else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
@@ -95,11 +101,11 @@ private:
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
             generateExpression(forStmt->iterable, program);
             std::string listVar = "__iter_list_" + std::to_string(tempVarCounter++) + "__";
-            program.push_back({STORE_VAR, listVar});
+            program.push_back({STORE_VAR, BigNum(getVarIndex(listVar))});
 
             std::string indexVar = "__index_" + std::to_string(tempVarCounter++) + "__";
             program.push_back({LOAD_CONST, BigNum(0)});
-            program.push_back({STORE_VAR, indexVar});
+            program.push_back({STORE_VAR, BigNum(getVarIndex(indexVar))});
 
             LoopContext ctx;
             ctx.breakLabel = createLabel();
@@ -111,18 +117,18 @@ private:
             labelAddresses[loopStartLabel] = program.size() - 1;
 
 
-            program.push_back({LOAD_VAR, indexVar});
-            program.push_back({LOAD_VAR, listVar});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(indexVar))});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(listVar))});
             program.push_back({CALL_FUNCTION, CallFunctionOperand{"len", 1}});
             program.push_back({BINARY_OP, "<"});
             program.push_back({JUMP_IF_FALSE, ctx.breakLabel});
             unresolvedJumps.push_back({program.size() - 1, ctx.breakLabel});
 
 
-            program.push_back({LOAD_VAR, listVar});
-            program.push_back({LOAD_VAR, indexVar});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(listVar))});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(indexVar))});
             program.push_back({LOAD_SUBSCRIPT});
-            program.push_back({STORE_VAR, forStmt->variable});
+            program.push_back({STORE_VAR, BigNum(getVarIndex(forStmt->variable))});
 
 
             for (Statement* bodyStmt : forStmt->body) {
@@ -132,10 +138,10 @@ private:
 
             program.push_back({LABEL, ctx.continueLabel});
             labelAddresses[ctx.continueLabel] = program.size();
-            program.push_back({LOAD_VAR, indexVar});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(indexVar))});
             program.push_back({LOAD_CONST, BigNum(1)});
             program.push_back({BINARY_OP, "+"});
-            program.push_back({STORE_VAR, indexVar});
+            program.push_back({STORE_VAR, BigNum(getVarIndex(indexVar))});
 
 
             program.push_back({JUMP, loopStartLabel});
@@ -224,9 +230,9 @@ private:
         }
         else if (auto classMemberAssign = dynamic_cast<ClassMemberAssignment*>(stmt)) {
             generateExpression(classMemberAssign->value, program);
-            program.push_back({LOAD_VAR, classMemberAssign->className});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(classMemberAssign->className))});
             program.push_back({STORE_MEMBER, classMemberAssign->memberName});
-            program.push_back({STORE_VAR, classMemberAssign->className});
+            program.push_back({STORE_VAR, BigNum(getVarIndex(classMemberAssign->className))});
         }
         else if (dynamic_cast<ContinueStatement*>(stmt)) {
             if (loopContextStack.empty()) {
@@ -263,7 +269,7 @@ private:
             program.push_back({BUILD_LIST, static_cast<int>(listLit->elements.size())});
         }
         else if (auto id = dynamic_cast<Identifier*>(expr)) {
-            program.push_back({LOAD_VAR, id->name});
+            program.push_back({LOAD_VAR, BigNum(getVarIndex(id->name))});
         }
         else if (auto binExpr = dynamic_cast<BinaryExpression*>(expr)) {
             if (binExpr->op == "[]") {
@@ -290,7 +296,7 @@ private:
             std::string varName;
             if (flag_of_member) {
                 varName = funcCall->name.substr(0, funcCall->name.find('.'));
-                program.push_back({LOAD_VAR, varName});
+                program.push_back({LOAD_VAR, BigNum(getVarIndex(varName))});
                 funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
             }
             bool fom = flag_of_member;
@@ -301,7 +307,7 @@ private:
             }
             program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
             if ((funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") && fom) {
-                program.push_back({STORE_VAR, varName});
+                program.push_back({STORE_VAR, BigNum(getVarIndex(varName))});
             }
         }
         else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
@@ -310,24 +316,24 @@ private:
             if (classes.find(newExpr->className) != classes.end()) {
                 ClassDeclaration* cls = classes[newExpr->className];
                 std::string tempVar = "__temp_obj__";
-                program.push_back({STORE_VAR, tempVar});
+                program.push_back({STORE_VAR, BigNum(getVarIndex(tempVar))});
 
 
                 for (auto member : cls->members) {
                     if (auto assign = dynamic_cast<Assignment*>(member.second)) {
                         generateExpression(assign->value, program);
-                        program.push_back({LOAD_VAR, tempVar});
+                        program.push_back({LOAD_VAR, BigNum(getVarIndex(tempVar))});
                         program.push_back({STORE_MEMBER, assign->target});
-                        program.push_back({STORE_VAR, tempVar});
+                        program.push_back({STORE_VAR, BigNum(getVarIndex(tempVar))});
                     }
                 }
 
                 for (auto func : cls->functions) {
-                    program.push_back({LOAD_VAR, tempVar});
+                    program.push_back({LOAD_VAR, BigNum(getVarIndex(tempVar))});
                     program.push_back({LOAD_CONST, func.second->name});
                     program.push_back({LOAD_FUNC, cls->className + "." + func.second->name});
                     program.push_back({STORE_MEMBER_FUNC});
-                    program.push_back({STORE_VAR, tempVar});
+                    program.push_back({STORE_VAR, BigNum(getVarIndex(tempVar))});
 
                     functions[cls->className + "." + func.second->name] = func.second;
                     BytecodeProgram funcProgram;
@@ -344,7 +350,7 @@ private:
                 }
 
                 if (!newExpr->args_init.empty()) {
-                    program.push_back({LOAD_VAR, tempVar});
+                    program.push_back({LOAD_VAR, BigNum(getVarIndex(tempVar))});
                     program.push_back({LOAD_CONST, "__temp_obj__"});
                     for (auto arg : newExpr->args_init) {
                         generateExpression(arg, program);
@@ -352,7 +358,7 @@ private:
                     program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
                 }
 
-                program.push_back({LOAD_VAR, tempVar});
+                program.push_back({LOAD_VAR, BigNum(getVarIndex(tempVar))});
             } else {
                 throwSyntaxError("Class not found: " + newExpr->className);
             }
@@ -368,6 +374,13 @@ private:
         generateExpression(expr->right, program);
 
         program.push_back({BINARY_OP, expr->op});
+    }
+
+    int getVarIndex(const std::string& varName) {
+        if (variables.find(varName) == variables.end()) {
+            variables[varName] = varIndexCounter++;
+        }
+        return variables[varName];
     }
 
     int createLabel() { return labelCounter++; }
