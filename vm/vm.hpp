@@ -83,7 +83,7 @@ public:
                     case STORE_MEMBER: std::cout << "STORE_MEMBER"; break;
                     case LOAD_FUNC: std::cout << "LOAD_FUNC"; break;
                     case STORE_MEMBER_FUNC: std::cout << "STORE_MEMBER_FUNC"; break;
-                    case CLEAR: std::cout << "CLEAR"; break;
+                    // case CLEAR: std::cout << "CLEAR"; break;
                     default: std::cout << "Unknown opcode"; break;
                 }
                 try{
@@ -146,7 +146,7 @@ public:
         while (currentFrame.pc < currentFrame.program.size()) {
             const Bytecode& instr = currentFrame.program[currentFrame.pc];
 
-//            printFrameStack();
+        //    printFrameStack();
 
             try {
                 switch (instr.op) {
@@ -225,10 +225,10 @@ public:
                         operandStack.push(obj.objectMembers[member]);
                         break;
                     }
-                    case CLEAR: {
-                        std::stack<Value>().swap(operandStack);
-                        break;
-                    }
+                    // case CLEAR: {
+                    //     std::stack<Value>().swap(operandStack);
+                    //     break;
+                    // }
                     case LABEL: break;
                     default: throwRuntimeError("Unknown bytecode instruction");
                 }

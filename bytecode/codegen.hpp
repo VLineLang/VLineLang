@@ -56,7 +56,7 @@ private:
     int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
-        program.push_back({CLEAR});
+        // program.push_back({CLEAR});
 
         if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
             if (assignment->isSubscriptAssignment) {

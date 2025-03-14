@@ -54,9 +54,9 @@ void printBytecode(const Bytecode& bytecode) {
         case STORE_MEMBER:
             std::cout << "STORE_MEMBER";
             break;
-        case CLEAR:
-            std::cout << "CLEAR";
-            break;
+        // case CLEAR:
+        //     std::cout << "CLEAR";
+        //     break;
         case LABEL:
             std::cout << "LABEL";
             break;
@@ -114,9 +114,9 @@ void interpreters() {
             globalFrame.pc = 0;
         }
 
-//        for (auto bytecode : mainProgram) {
-//            printBytecode(bytecode);
-//        }
+    //    for (auto bytecode : mainProgram) {
+    //        printBytecode(bytecode);
+    //    }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {
