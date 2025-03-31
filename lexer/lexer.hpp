@@ -151,7 +151,7 @@ private:
         char current = peek();
         if (current == '.' || current == '=' || current == '+' ||
             current == '*' || current == '/' || current == '<' || current == '^' ||
-            current == '>' || current == '!' || current == '-' || current == '%') {
+            current == '>' || current == '!' || current == '-' || current == '%' || current == '&' || current == '|' || current == '~') {
             op += current;
             consume();
             if (op == "=" || op == "!" || op == "<" || op == ">") {
