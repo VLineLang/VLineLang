@@ -29,7 +29,8 @@ public:
                 tokens.push_back(string());
             } else if (current == '.' || current == '=' || current == '+' ||
                        current == '*' || current == '/' || current == '<' || current == '^' ||
-                       current == '>' || current == '!' || current == '-' || current == '%') {
+                       current == '>' || current == '!' || current == '-' || current == '%' ||
+                       current == '&' || current == '|' || current == '~') {
                 tokens.push_back(operator_());
             } else if (current == '(' || current == ')' || current == '{' || current == ':' ||
                        current == '}' || current == ',' || current == '[' || current == ']') {

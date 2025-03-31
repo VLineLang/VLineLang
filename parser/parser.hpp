@@ -358,7 +358,7 @@ private:
 
     Expression* term() {
         Expression* left = factor();
-        while (peek().type == TOKEN_OPERATOR && (peek().value == "*" || peek().value == "/" || peek().value == "%" || peek().value == "^")) {
+        while (peek().type == TOKEN_OPERATOR && (peek().value == "*" || peek().value == "/" || peek().value == "%" || peek().value == "^" || peek().value == "&" || peek().value == "|" || peek().value == "~")) {
             Token op = peek();
             consume();
             Expression* right = factor();

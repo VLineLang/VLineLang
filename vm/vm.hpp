@@ -323,7 +323,7 @@ private:
             } else {
                 throwRuntimeError("Cannot add incompatible types");
             }
-        } else if (op == "-" || op == "*" || op == "/" || op == "%" || op == "^") {
+        } else if (op == "-" || op == "*" || op == "/" || op == "%" || op == "^" || op == "|" || op == "&" || op == "~") {
             if (left.type != Value::NUMBER || right.type != Value::NUMBER) {
                 throwRuntimeError("Operator " + op + " requires numbers");
             }
@@ -333,6 +333,9 @@ private:
             else if (op == "/") result = left.bignumValue / right.bignumValue;
             else if (op == "%") result = left.bignumValue % right.bignumValue;
             else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
+            else if (op == "|") result = left.bignumValue.get_ll() | right.bignumValue.get_ll();
+            else if (op == "&") result = left.bignumValue.get_ll() & right.bignumValue.get_ll();
+            else if (op == "~") result = ~left.bignumValue.get_ll();
             operandStack.push(Value(result));
         } else if (op == "<" || op == "<=" || op == "==" ||
                   op == "!=" || op == ">" || op == ">=") {
