@@ -376,6 +376,8 @@ private:
             consume();
             Expression* expr = factor();
             return new UnaryExpression("-", expr);
+        } else if (token.type == TOKEN_OPERATOR && token.value == "~") {
+            return new NumberLiteral(BigNum(0));
         } else if (token.type == TOKEN_KEYWORD && token.value == "not") {
             consume();
             Expression* expr = primary();

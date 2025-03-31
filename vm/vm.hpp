@@ -335,7 +335,7 @@ private:
             else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
             else if (op == "|") result = left.bignumValue.get_ll() | right.bignumValue.get_ll();
             else if (op == "&") result = left.bignumValue.get_ll() & right.bignumValue.get_ll();
-            else if (op == "~") result = ~left.bignumValue.get_ll();
+            else if (op == "~") result = ~right.bignumValue.get_ll();
             operandStack.push(Value(result));
         } else if (op == "<" || op == "<=" || op == "==" ||
                   op == "!=" || op == ">" || op == ">=") {
