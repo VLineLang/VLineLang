@@ -87,9 +87,9 @@ private:
         if (value == "fn" || value == "if" || value == "while" ||
             value == "return" || value == "true" || value == "false" ||
             value == "and" || value == "or" || value == "not" || value == "else" ||
-            value == "break" || value == "continue" || value == "null" ||
+            value == "elif" || value == "break" || value == "continue" || value == "null" ||
             value == "for" || value == "in" || value == "class" || value == "new" ||
-            value == "const" || value == "end") {
+            value == "const" || value == "end" || value == "import") {
             return {TOKEN_KEYWORD, value};
         }
         return {TOKEN_IDENTIFIER, value};

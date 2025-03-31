@@ -159,8 +159,16 @@ signed main(int argc, char *argv[]) {
     if (argc > 1) {
         std::vector<bool> used(argc, false);
         for (int i = 1; i < argc; i++) {
+            if (argv[i][0] == '-' && argv[i][1] == 'v') {
+                printf("VLine Compiler %s (publish on %s) [%s]\n", VLINE_VERSION, VLINE_PUBLISH, VLINE_COMPILER);
+                exit(0);
+            }
             if (argv[i][0] == '-' && argv[i][1] == '-') {
                 std::string op = std::string(argv[i]).substr(2);
+                if (op == "version") {
+                    printf("VLine Compiler %s (publish on %s) [%s]\n", VLINE_VERSION, VLINE_PUBLISH, VLINE_COMPILER);
+                    exit(0);
+                }
                 if (op == "out") {
                     if (i + 1 >= argc) throw std::runtime_error("Can't open file (empty filename)");
                     else {

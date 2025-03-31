@@ -314,17 +314,25 @@ private:
         Value left = operandStack.top(); operandStack.pop();
         std::string op = std::get<std::string>(instr.operand);
 
-        if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%" || op == "^") {
+        if (op == "+") {
+            if (left.type == Value::STRING && right.type == Value::STRING) {
+                operandStack.push(Value(left.strValue + right.strValue));
+            } else if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                BigNum result = left.bignumValue + right.bignumValue;
+                operandStack.push(Value(result));
+            } else {
+                throwRuntimeError("Cannot add incompatible types");
+            }
+        } else if (op == "-" || op == "*" || op == "/" || op == "%" || op == "^") {
+            if (left.type != Value::NUMBER || right.type != Value::NUMBER) {
+                throwRuntimeError("Operator " + op + " requires numbers");
+            }
             BigNum result;
-            if (op == "+") result = left.bignumValue + right.bignumValue;
-            else if (op == "-") result = left.bignumValue - right.bignumValue;
+            if (op == "-") result = left.bignumValue - right.bignumValue;
             else if (op == "*") result = left.bignumValue * right.bignumValue;
             else if (op == "/") result = left.bignumValue / right.bignumValue;
             else if (op == "%") result = left.bignumValue % right.bignumValue;
             else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
-            else {
-                throwRuntimeError("Unknown binary operator: " + op);
-            }
             operandStack.push(Value(result));
         } else if (op == "<" || op == "<=" || op == "==" ||
                   op == "!=" || op == ">" || op == ">=") {

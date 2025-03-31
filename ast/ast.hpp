@@ -25,9 +25,20 @@ struct Statement : ASTNode {
         CLASS_DECLARATION,
         CLASS_MEMBER_ASSIGNMENT,
         CONSTANT_DECLARATION,
+        IMPORT_STATEMENT // Add this line
     };
 
     virtual StatementType type() const = 0;
+};
+
+struct ImportStatement : Statement {
+    std::string packageName;
+
+    ImportStatement(const std::string& packageName) : packageName(packageName) {}
+
+    StatementType type() const override {
+        return IMPORT_STATEMENT;
+    }
 };
 
 struct Assignment : Statement {
@@ -51,9 +62,10 @@ struct IfStatement : Statement {
     Expression* condition;
     std::vector<Statement*> body;
     std::vector<Statement*> elseBody;
+    std::vector<std::pair<Expression*, std::vector<Statement*>>> elifStatements;
 
-    IfStatement(Expression* condition, const std::vector<Statement*>& body, const std::vector<Statement*>& elseBody = {})
-            : condition(condition), body(body), elseBody(elseBody) {}
+    IfStatement(Expression* condition, const std::vector<Statement*>& body, const std::vector<std::pair<Expression*, std::vector<Statement*>>>& elifStatements = {}, const std::vector<Statement*>& elseBody = {})
+            : condition(condition), body(body), elifStatements(elifStatements), elseBody(elseBody) {}
 
     StatementType type() const override {
         return IF_STATEMENT;

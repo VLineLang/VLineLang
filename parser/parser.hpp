@@ -74,10 +74,23 @@ private:
             return classDeclaration();
         } else if (token.type == TOKEN_KEYWORD && token.value == "const") {
             return constantDeclaration();
-        } else {
+        } else if (token.type == TOKEN_KEYWORD && token.value == "import") {
+            return importStatement();
+        }
+        else {
             Expression* expr = expression();
             return new ExpressionStatement(expr);
         }
+    }
+
+    ImportStatement* importStatement() {
+        consume();
+        Token packageToken = peek();
+        if (packageToken.type != TOKEN_STRING) {
+            throwSyntaxError("Expected string literal after 'import'");
+        }
+        consume();
+        return new ImportStatement(packageToken.value);
     }
 
     ConstantDeclaration* constantDeclaration() {
@@ -176,11 +189,23 @@ private:
 
         std::vector<Statement*> body;
         while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
-
-            if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
+            if (peek().type == TOKEN_KEYWORD && peek().value == "elif") {
                 break;
             }
             body.push_back(statement());
+        }
+        std::vector<Statement*> elifBody;
+        std::vector<std::pair<Expression*, std::vector<Statement*>>> elifStatements;
+        while (peek().type == TOKEN_KEYWORD && peek().value == "elif") {
+            consume();
+            Expression* elifCondition = expression();
+            while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
+                if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
+                    break;
+                }
+                elifBody.push_back(statement());
+            }
+            elifStatements.push_back({elifCondition, elifBody});
         }
 
         std::vector<Statement*> elseBody;
@@ -191,7 +216,6 @@ private:
                 elseBody.push_back(statement());
             }
         }
-        
 
         if (peek().type == TOKEN_KEYWORD && peek().value == "end") {
             consume();
@@ -199,7 +223,7 @@ private:
             throwSyntaxError("Expected 'end' to close if statement");
         }
 
-        return new IfStatement(condition, body, elseBody);
+        return new IfStatement(condition, body, elifStatements, elseBody);
     }
 
     ForStatement* forStatement() {

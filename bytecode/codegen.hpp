@@ -63,7 +63,38 @@ private:
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
         // program.push_back({CLEAR});
-        if (auto constDecl = dynamic_cast<ConstantDeclaration*>(stmt)) {
+        if (auto importStmt = dynamic_cast<ImportStatement*>(stmt)) {
+            std::ifstream packageFile(importStmt->packageName + ".vl");
+            if (!packageFile.is_open()) {
+                throwSyntaxError("Cannot open package file " + importStmt->packageName + ".vl");
+            }
+
+            std::string command, commands;
+            while (getline(packageFile, command)) {
+                commands += command + "\n";
+            }
+            packageFile.close();
+
+            Lexer lexer(commands);
+            auto tokens = lexer.tokenize();
+            Parser parser(tokens);
+            auto importStatements = parser.parse();
+
+            CodeGen importGen(classes, constants);
+            importGen.setReplMode(isReplMode);
+            BytecodeProgram importProgram = importGen.generate(importStatements);
+
+            // 将导入的bytecode插入到当前程序中
+            program.insert(program.end(), importProgram.begin(), importProgram.end());
+
+            // 合并函数和常量
+            auto newFuncs = importGen.getFunctions();
+            functions.insert(newFuncs.begin(), newFuncs.end());
+            
+            auto newConsts = importGen.getConstants();
+            constants.insert(newConsts.begin(), newConsts.end());
+        }
+        else if (auto constDecl = dynamic_cast<ConstantDeclaration*>(stmt)) {
             if (constants.count(constDecl->name)) {
                 throwSyntaxError("Cannot redefine constant '" + constDecl->name + "'");
             }
@@ -95,25 +126,55 @@ private:
             }
         }
         else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
+            // 生成条件表达式
             generateExpression(ifStmt->condition, program);
             program.push_back({JUMP_IF_FALSE, createLabel()});
-            size_t falseJumpPos = program.size() - 1;
-
+            size_t falseJumpPos = program.size() - 1; // 记录 if 条件为假时的跳转位置
+        
+            // 生成 if 主体
             for (Statement* bodyStmt : ifStmt->body) {
                 generateStatement(bodyStmt, program);
             }
-
-            if (!ifStmt->elseBody.empty()) {
+        
+            // 如果有 elif 或 else，需要跳过它们
+            if (!ifStmt->elifStatements.empty() || !ifStmt->elseBody.empty()) {
                 program.push_back({JUMP, createLabel()});
-                size_t endJumpPos = program.size() - 1;
-
-                program[falseJumpPos].operand = (int)program.size();
-                for (Statement* elseStmt : ifStmt->elseBody) {
-                    generateStatement(elseStmt, program);
+                size_t endJumpPos = program.size() - 1; // 记录跳过后续 elif 和 else 的位置
+                program[falseJumpPos].operand = (int)program.size(); // 设置 if 条件为假时的跳转目标
+        
+                // 处理每个 elif 分支
+                for (size_t i = 0; i < ifStmt->elifStatements.size(); ++i) {
+                    auto& elifStmt = ifStmt->elifStatements[i];
+                    generateExpression(elifStmt.first, program); // 生成 elif 条件表达式
+                    program.push_back({JUMP_IF_FALSE, createLabel()});
+                    size_t elifFalseJumpPos = program.size() - 1; // 记录 elif 条件为假时的跳转位置
+        
+                    for (Statement* elifBodyStmt : elifStmt.second) {
+                        generateStatement(elifBodyStmt, program); // 生成 elif 主体
+                    }
+        
+                    // 如果还有后续 elif 或 else，需要跳过它们
+                    if (i != ifStmt->elifStatements.size() - 1 || !ifStmt->elseBody.empty()) {
+                        program.push_back({JUMP, createLabel()});
+                        size_t nextEndJumpPos = program.size() - 1; // 记录跳过后续分支的位置
+                        program[elifFalseJumpPos].operand = (int)program.size(); // 设置 elif 条件为假时的跳转目标
+                        endJumpPos = nextEndJumpPos; // 更新 endJumpPos
+                    } else {
+                        program[elifFalseJumpPos].operand = (int)program.size(); // 最后一个 elif，直接跳到结束
+                    }
                 }
-                program[endJumpPos].operand = (int)program.size();
+        
+                // 处理 else 分支
+                if (!ifStmt->elseBody.empty()) {
+                    for (Statement* elseStmt : ifStmt->elseBody) {
+                        generateStatement(elseStmt, program); // 生成 else 主体
+                    }
+                    program[endJumpPos].operand = (int)program.size(); // 设置跳过 elif 的 JUMP 目标
+                } else {
+                    program[endJumpPos].operand = (int)program.size(); // 没有 else，直接跳到结束
+                }
             } else {
-                program[falseJumpPos].operand = (int)program.size();
+                program[falseJumpPos].operand = (int)program.size(); // 没有 elif 和 else，直接结束
             }
         }
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
