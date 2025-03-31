@@ -72,10 +72,29 @@ private:
             return forStatement();
         } else if (token.type == TOKEN_KEYWORD && token.value == "class") {
             return classDeclaration();
+        } else if (token.type == TOKEN_KEYWORD && token.value == "const") {
+            return constantDeclaration();
         } else {
             Expression* expr = expression();
             return new ExpressionStatement(expr);
         }
+    }
+
+    ConstantDeclaration* constantDeclaration() {
+        consume();
+        Token name = peek();
+        if (name.type != TOKEN_IDENTIFIER) {
+            throwSyntaxError("Expected identifier after 'const'");
+        }
+        consume();
+        
+        if (peek().type != TOKEN_OPERATOR || peek().value != "=") {
+            throwSyntaxError("Expected '=' after constant name");
+        }
+        consume();
+        
+        Expression* value = expression();
+        return new ConstantDeclaration(name.value, value);
     }
 
 
@@ -90,10 +109,9 @@ private:
             if (parentName.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected class name after ':'");
             consume();
         }
-        consume();
         std::map<std::string, Assignment*> members;
         std::map<std::string, FunctionDeclaration*> functions;
-        while (peek().value != "}") {
+        while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
             if (peek().type == TOKEN_KEYWORD && peek().value == "fn") {
                 FunctionDeclaration* funcDecl = functionDeclaration();
                 functions[funcDecl->name] = funcDecl;
@@ -156,29 +174,29 @@ private:
         consume();
         Expression* condition = expression();
 
-        if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
-            throwSyntaxError("Expected '{' after if condition");
-        }
-        consume();
-
         std::vector<Statement*> body;
-        while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
+        while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
+
+            if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
+                break;
+            }
             body.push_back(statement());
         }
-        consume();
 
         std::vector<Statement*> elseBody;
         if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
             consume();
-            if (peek().type == TOKEN_PUNCTUATION && peek().value == "{") {
-                consume();
-                while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
-                    elseBody.push_back(statement());
-                }
-                consume();
-            } else {
-                throwSyntaxError("Expected '{' after else");
+            
+            while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
+                elseBody.push_back(statement());
             }
+        }
+        
+
+        if (peek().type == TOKEN_KEYWORD && peek().value == "end") {
+            consume();
+        } else {
+            throwSyntaxError("Expected 'end' to close if statement");
         }
 
         return new IfStatement(condition, body, elseBody);
@@ -204,13 +222,8 @@ private:
         Expression* iterable = expression();
 
 
-        if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
-            throwSyntaxError("Expected '{' to start for loop body");
-        }
-        consume();
-
         std::vector<Statement*> body;
-        while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
+        while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
             body.push_back(statement());
         }
         consume();
@@ -221,12 +234,8 @@ private:
     WhileStatement* whileStatement() {
         consume();
         Expression* condition = expression();
-        if (peek().type != TOKEN_PUNCTUATION || peek().value != "{") {
-            throwSyntaxError("Expected '{' after while condition");
-        }
-        consume();
         std::vector<Statement*> body;
-        while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
+        while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
             body.push_back(statement());
         }
         consume();
@@ -247,9 +256,8 @@ private:
             }
         }
         consume();
-        consume();
         std::vector<Statement*> body;
-        while (peek().type != TOKEN_PUNCTUATION || peek().value != "}") {
+        while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
             body.push_back(statement());
         }
         consume();

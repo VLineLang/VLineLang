@@ -338,6 +338,16 @@ private:
             else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.bignumValue >= r.bignumValue; });
             else if (op == "==") handle_compare([](auto& l, auto& r){ return l.bignumValue == r.bignumValue; });
             else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.bignumValue != r.bignumValue; });
+        } else if (op == "and" || op == "or") {
+            bool leftValue = left.bignumValue != 0;
+            bool rightValue = right.bignumValue != 0;
+            bool result;
+            if (op == "and") {
+                result = leftValue && rightValue;
+            } else { // op == "or"
+                result = leftValue || rightValue;
+            }
+            operandStack.push(Value(BigNum(result ? 1 : 0)));
         } else if (op == "[]") {
             if (left.type != Value::LIST) {
                 throwTypeError("Expected list for [] operator");
@@ -496,6 +506,7 @@ private:
             return builtinNumber(args);
         } else {
             throwIdentifierError("Undefined builtin function: " + name);
+            return Value();
         }
     }
 

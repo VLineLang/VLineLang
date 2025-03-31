@@ -88,7 +88,8 @@ private:
             value == "return" || value == "true" || value == "false" ||
             value == "and" || value == "or" || value == "not" || value == "else" ||
             value == "break" || value == "continue" || value == "null" ||
-            value == "for" || value == "in" || value == "class" || value == "new") {
+            value == "for" || value == "in" || value == "class" || value == "new" ||
+            value == "const" || value == "end") {
             return {TOKEN_KEYWORD, value};
         }
         return {TOKEN_IDENTIFIER, value};

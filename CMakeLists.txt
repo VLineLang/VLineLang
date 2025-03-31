@@ -3,6 +3,9 @@ project(Vline_lang)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# static compiler
+set(CMAKE_CXX_FLAGS "-static")
+
 add_executable(
         Vline_lang main.cpp
         parser/parser.hpp
@@ -26,6 +29,3 @@ add_executable(
         utils/utils.hpp
         std/maths/math.hpp
 )
-
-target_compile_options(Vline_lang PRIVATE "$<$<CONFIG:Release>:/MT>")
-target_compile_options(Vline_lang PRIVATE "$<$<CONFIG:Debug>:/MTd>")

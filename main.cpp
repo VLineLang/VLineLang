@@ -6,6 +6,7 @@ std::vector<Token> tokens;
 std::vector<Statement*> statements;
 VM globalVM;
 std::map<std::string, ClassDeclaration*> classes;
+std::map<std::string, Value> consts;
 
 void printBytecode(const Bytecode& bytecode) {
     switch (bytecode.op) {
@@ -95,7 +96,7 @@ void printBytecode(const Bytecode& bytecode) {
 
 void interpreters() {
     try {
-        CodeGen codegen(classes);
+        CodeGen codegen(classes, consts);
         codegen.setReplMode(true);
         BytecodeProgram mainProgram = codegen.generate(statements);
 
@@ -105,6 +106,7 @@ void interpreters() {
         }
 
         classes = codegen.getClasses();
+        consts = codegen.getConstants();
 
         if (globalVM.frames.empty()) {
             globalVM.frames.push(VM::Frame(mainProgram));
@@ -202,13 +204,19 @@ signed main(int argc, char *argv[]) {
 
             bool flags = false;
 
-            if (tokens.size() > 1 && tokens[tokens.size()-2].type == TOKEN_PUNCTUATION && tokens[tokens.size()-2].value == "{") {
+            if (tokens.size() > 0 && tokens[0].type == TOKEN_KEYWORD && 
+                (tokens[0].value == "fn" || tokens[0].value == "while" || 
+                 tokens[0].value == "for" || tokens[0].value == "if" || 
+                 tokens[0].value == "class")) {
                 flags = true;
                 std::string command;
                 while (true) {
                     printf("... ");
                     std::getline(std::cin, command);
-                    if (command.empty()) {
+                    if (command.empty() || 
+                        (command.find("end") != std::string::npos && 
+                         command.find_first_not_of(" \t") == command.find("end"))) {
+                        order += "\n" + command;
                         break;
                     }
                     order += "\n" + command;

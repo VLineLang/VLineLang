@@ -40,8 +40,13 @@ public:
         return classes;
     }
 
-    CodeGen(std::map<std::string, ClassDeclaration*> cls) {
+    std::map<std::string, Value> getConstants() const {
+        return constants;
+    }
+
+    CodeGen(std::map<std::string, ClassDeclaration*> cls, std::map<std::string, Value> consts) {
         classes = cls;
+        constants = consts;
     }
 
 private:
@@ -51,14 +56,33 @@ private:
     std::map<std::string, int> variables;
     std::map<std::string, int> labels;
     std::map<std::string, ClassDeclaration*> classes;
+    std::map<std::string, Value> constants;
     int labelCounter = 0;
 
     int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
         // program.push_back({CLEAR});
-
-        if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
+        if (auto constDecl = dynamic_cast<ConstantDeclaration*>(stmt)) {
+            if (constants.count(constDecl->name)) {
+                throwSyntaxError("Cannot redefine constant '" + constDecl->name + "'");
+            }
+            BytecodeProgram program_child;
+            generateExpression(constDecl->value, program_child);
+            auto& operand = program_child.back().operand;
+            Value constValue;
+            if (std::holds_alternative<BigNum>(operand)) {
+                constValue = Value(std::get<BigNum>(operand));
+            } else if (std::holds_alternative<std::string>(operand)) {
+                constValue = Value(std::get<std::string>(operand));
+            } else {
+                throwSyntaxError("Invalid constant value");
+            }
+            constants[constDecl->name] = constValue;
+        } else if (auto assignment = dynamic_cast<Assignment*>(stmt)) {
+            if (constants.find(assignment->target) != constants.end()) {
+                throwSyntaxError("Cannot assign to constant '" + assignment->target + "'");
+            }
             if (assignment->isSubscriptAssignment) {
                 generateExpression(new Identifier(assignment->target), program);
                 generateExpression(assignment->index, program);
@@ -179,7 +203,7 @@ private:
         else if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(stmt)) {
             functions[funcDecl->name] = funcDecl;
 
-            CodeGen funcGen(classes);
+            CodeGen funcGen(classes, constants);
             funcGen.setReplMode(isReplMode);
             funcGen.functions = functions;
             funcGen.inFunction = true;
@@ -263,7 +287,16 @@ private:
             program.push_back({BUILD_LIST, static_cast<int>(listLit->elements.size())});
         }
         else if (auto id = dynamic_cast<Identifier*>(expr)) {
-            program.push_back({LOAD_VAR, id->name});
+            if (constants.count(id->name)) {
+                const Value& constValue = constants[id->name];
+                if (constValue.type == Value::NUMBER) {
+                    program.push_back({LOAD_CONST, constValue.bignumValue});
+                } else if (constValue.type == Value::STRING) {
+                    program.push_back({LOAD_CONST, constValue.strValue});
+                }
+            } else {
+                program.push_back({LOAD_VAR, id->name});
+            }
         }
         else if (auto binExpr = dynamic_cast<BinaryExpression*>(expr)) {
             if (binExpr->op == "[]") {

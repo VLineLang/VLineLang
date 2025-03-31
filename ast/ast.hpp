@@ -24,6 +24,7 @@ struct Statement : ASTNode {
         FOR_STATEMENT,
         CLASS_DECLARATION,
         CLASS_MEMBER_ASSIGNMENT,
+        CONSTANT_DECLARATION,
     };
 
     virtual StatementType type() const = 0;
@@ -223,6 +224,18 @@ struct MemberAccess : public Expression {
     std::string member;
 
     MemberAccess(Expression* obj, const std::string& mem) : object(obj), member(mem) {}
+};
+
+struct ConstantDeclaration : Statement {
+    std::string name;
+    Expression* value;
+
+    ConstantDeclaration(const std::string& name, Expression* value)
+            : name(name), value(value) {}
+
+    StatementType type() const override {
+        return CONSTANT_DECLARATION;
+    }
 };
 
 #endif
