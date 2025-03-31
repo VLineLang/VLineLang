@@ -213,10 +213,7 @@ signed main(int argc, char *argv[]) {
                 while (true) {
                     printf("... ");
                     std::getline(std::cin, command);
-                    if (command.empty() || 
-                        (command.find("end") != std::string::npos && 
-                         command.find_first_not_of(" \t") == command.find("end"))) {
-                        order += "\n" + command;
+                    if (command.empty()) {
                         break;
                     }
                     order += "\n" + command;
