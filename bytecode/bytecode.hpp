@@ -33,9 +33,13 @@ struct CallFunctionOperand {
     int argCount;
 };
 
+struct VALUE_NULL {
+    VALUE_NULL() {}
+};
+
 struct Bytecode {
     BytecodeOp op;
-    std::variant<BigNum, std::string, CallFunctionOperand> operand;
+    std::variant<BigNum, std::string, CallFunctionOperand, VALUE_NULL> operand;
 };
 
 using BytecodeProgram = std::vector<Bytecode>;

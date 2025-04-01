@@ -88,11 +88,12 @@ struct WhileStatement : Statement {
 struct FunctionDeclaration : public Statement {
     std::string name;
     std::vector<std::string> parameters;
+    std::vector<Expression*> default_values;
     std::vector<Statement*> body;
     BytecodeProgram bytecode;
 
-    FunctionDeclaration(const std::string& name, const std::vector<std::string>& parameters, const std::vector<Statement*>& body)
-            : name(name), parameters(parameters), body(body) {}
+    FunctionDeclaration(const std::string& name, const std::vector<std::string>& parameters, const std::vector<Expression*>& default_values, const std::vector<Statement*>& body)
+            : name(name), parameters(parameters), default_values(default_values), body(body) {}
 
     StatementType type() const override {
         return FUNCTION_DECLARATION;

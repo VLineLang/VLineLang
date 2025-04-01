@@ -60,9 +60,21 @@ private:
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
 
         if (auto importStmt = dynamic_cast<ImportStatement*>(stmt)) {
-            std::ifstream packageFile(importStmt->packageName + ".vl");
+            std::string workspacePath = importStmt->packageName + ".vl";
+            std::string workspaceDirPath = importStmt->packageName + "/__init__.vl";
+            std::string libPath = "lib/" + importStmt->packageName + ".vl";
+            std::string libDirPath = "lib/" + importStmt->packageName + "/__init__.vl";
+            
+            std::ifstream packageFile(workspacePath);
             if (!packageFile.is_open()) {
-                throwSyntaxError("Cannot open package file " + importStmt->packageName + ".vl");
+                packageFile.open(workspaceDirPath);
+                if (!packageFile.is_open()) {
+                    packageFile.open(libPath);
+                    if (!packageFile.is_open()) {
+                        packageFile.open(libDirPath);
+                        if (!packageFile.is_open()) throwSyntaxError("Cannot open package file " + importStmt->packageName);
+                    }
+                }
             }
 
             std::string command, commands;
@@ -107,7 +119,7 @@ private:
                 generateExpression(new Identifier(assignment->target), program);
                 generateExpression(assignment->index, program);
                 generateExpression(assignment->value, program);
-                program.push_back({STORE_SUBSCRIPT});
+                program.push_back({STORE_SUBSCRIPT, VALUE_NULL()});
                 program.push_back({STORE_VAR, assignment->target});
             } else {
                 generateExpression(assignment->value, program);
@@ -202,7 +214,7 @@ private:
 
             program.push_back({LOAD_VAR, listVar});
             program.push_back({LOAD_VAR, indexVar});
-            program.push_back({LOAD_SUBSCRIPT});
+            program.push_back({LOAD_SUBSCRIPT, VALUE_NULL()});
             program.push_back({STORE_VAR, forStmt->variable});
 
 
@@ -325,7 +337,7 @@ private:
             program.push_back({LOAD_CONST, strLit->value});
         }
         else if (dynamic_cast<NullLiteral*>(expr)) {
-            program.push_back({LOAD_CONST});
+            program.push_back({LOAD_CONST, VALUE_NULL()});
         }
         else if (auto listLit = dynamic_cast<ListLiteral*>(expr)) {
             for (auto element : listLit->elements) {
@@ -349,7 +361,7 @@ private:
             if (binExpr->op == "[]") {
                 generateExpression(binExpr->left, program);
                 generateExpression(binExpr->right, program);
-                program.push_back({LOAD_SUBSCRIPT});
+                program.push_back({LOAD_SUBSCRIPT, VALUE_NULL()});
             } else {
                 handleBinaryOp(binExpr, program);
             }
@@ -373,19 +385,36 @@ private:
                 program.push_back({LOAD_VAR, varName});
                 funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
             }
-            bool fom = flag_of_member;
-            if (!flag_of_member || funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") { --flag_of_member; }
+            if (!flag_of_member) { --flag_of_member; }
             else program.push_back({LOAD_CONST, varName});
-            for (auto arg : funcCall->arguments) {
-                generateExpression(arg, program);
-            }
-            program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
-            if ((funcCall->name == "append" || funcCall->name == "erase" || funcCall->name == "insert") && fom) {
-                program.push_back({STORE_VAR, varName});
+
+            auto funcIt = functions.find(funcCall->name);
+            if (funcIt != functions.end()) {
+                FunctionDeclaration* funcDecl = funcIt->second;
+                size_t providedArgs = funcCall->arguments.size();
+                size_t totalParams = funcDecl->parameters.size();
+
+                for (size_t i = 0; i < providedArgs; i++) {
+                    generateExpression(funcCall->arguments[i], program);
+                }
+
+                for (size_t i = providedArgs; i < totalParams; i++) {
+                    if (funcDecl->default_values[i] != nullptr) {
+                        generateExpression(funcDecl->default_values[i], program);
+                    } else {
+                        throwSyntaxError("Missing argument for parameter '" + funcDecl->parameters[i] + "'");
+                    }
+                }
+                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(totalParams + flag_of_member + 1)}});
+            } else {
+                for (auto arg : funcCall->arguments) {
+                    generateExpression(arg, program);
+                }
+                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
             }
         }
         else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
-            program.push_back({CREATE_OBJECT});
+            program.push_back({CREATE_OBJECT, VALUE_NULL()});
 
             if (classes.find(newExpr->className) != classes.end()) {
                 ClassDeclaration* cls = classes[newExpr->className];
@@ -427,10 +456,31 @@ private:
                 if (newExpr->is_init) {
                     program.push_back({LOAD_VAR, tempVar});
                     program.push_back({LOAD_CONST, "__temp_obj__"});
-                    for (auto arg : newExpr->args_init) {
-                        generateExpression(arg, program);
+                    
+                    auto initFuncIt = cls->functions.find("__init__");
+                    if (initFuncIt != cls->functions.end()) {
+                        FunctionDeclaration* initFunc = initFuncIt->second;
+                        size_t providedArgs = newExpr->args_init.size();
+                        size_t totalParams = initFunc->parameters.size();
+
+                        for (size_t i = 0; i < providedArgs; i++) {
+                            generateExpression(newExpr->args_init[i], program);
+                        }
+
+                        for (size_t i = providedArgs; i < totalParams; i++) {
+                            if (i < initFunc->default_values.size() && initFunc->default_values[i] != nullptr) {
+                                generateExpression(initFunc->default_values[i], program);
+                            } else {
+                                throwSyntaxError("Missing argument for parameter '" + initFunc->parameters[i] + "' in __init__");
+                            }
+                        }
+                        program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(totalParams + 2)}});
+                    } else {
+                        for (auto arg : newExpr->args_init) {
+                            generateExpression(arg, program);
+                        }
+                        program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
                     }
-                    program.push_back({CALL_FUNCTION, CallFunctionOperand{"__init__", (int)(newExpr->args_init.size() + 2)}});
                 }
 
                 program.push_back({LOAD_VAR, tempVar});

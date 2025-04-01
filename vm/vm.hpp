@@ -323,31 +323,62 @@ private:
                 throwRuntimeError("Cannot add incompatible types");
             }
         } else if (op == "-" || op == "*" || op == "/" || op == "%" || op == "^" || op == "|" || op == "&" || op == "~") {
-            if (left.type != Value::NUMBER || right.type != Value::NUMBER) {
+            if (op == "*") {
+                if ((left.type == Value::STRING && right.type == Value::NUMBER) || (right.type == Value::STRING && left.type == Value::NUMBER)) {
+                    std::string result;
+                    auto times = right.bignumValue.get_ll();
+                    if (times < 0) throwRuntimeError("Cannot multiply string by negative number");
+                    for (long long i = 0; i < times; i++) {
+                        result += left.strValue;
+                    }
+                    operandStack.push(Value(result));
+                } else if ((left.type == Value::LIST && right.type == Value::NUMBER) || (right.type == Value::LIST && left.type == Value::NUMBER)) {
+                    std::vector<Value> result;
+                    auto times = right.bignumValue.get_ll();
+                    if (times < 0) throwRuntimeError("Cannot multiply list by negative number");
+                    for (long long i = 0; i < times; i++) {
+                        result.insert(result.end(), left.listValue.begin(), left.listValue.end());
+                    }
+                    operandStack.push(Value(result));
+                } else if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
+                    operandStack.push(Value(left.bignumValue * right.bignumValue));
+                } else {
+                    throwRuntimeError("Invalid operand types for multiplication");
+                }
+            } else if (left.type != Value::NUMBER || right.type != Value::NUMBER) {
                 throwRuntimeError("Operator " + op + " requires numbers");
+            } else {
+                BigNum result;
+                if (op == "-") result = left.bignumValue - right.bignumValue;
+                else if (op == "/") result = left.bignumValue / right.bignumValue;
+                else if (op == "%") result = left.bignumValue % right.bignumValue;
+                else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
+                else if (op == "|") result = left.bignumValue.get_ll() | right.bignumValue.get_ll();
+                else if (op == "&") result = left.bignumValue.get_ll() & right.bignumValue.get_ll();
+                else if (op == "~") result = ~right.bignumValue.get_ll();
+                operandStack.push(Value(result));
             }
-            BigNum result;
-            if (op == "-") result = left.bignumValue - right.bignumValue;
-            else if (op == "*") result = left.bignumValue * right.bignumValue;
-            else if (op == "/") result = left.bignumValue / right.bignumValue;
-            else if (op == "%") result = left.bignumValue % right.bignumValue;
-            else if (op == "^") result = left.bignumValue.pow(right.bignumValue);
-            else if (op == "|") result = left.bignumValue.get_ll() | right.bignumValue.get_ll();
-            else if (op == "&") result = left.bignumValue.get_ll() & right.bignumValue.get_ll();
-            else if (op == "~") result = ~right.bignumValue.get_ll();
-            operandStack.push(Value(result));
         } else if (op == "<" || op == "<=" || op == "==" ||
                   op == "!=" || op == ">" || op == ">=") {
             auto handle_compare = [&](auto cmp) {
                 bool result = cmp(left, right);
                 operandStack.push(Value(BigNum(result ? 1 : 0)));
             };
-            if (op == "<") handle_compare([](auto& l, auto& r){ return l.bignumValue < r.bignumValue; });
-            else if (op == ">") handle_compare([](auto& l, auto& r){ return l.bignumValue > r.bignumValue; });
-            else if (op == "<=") handle_compare([](auto& l, auto& r){ return l.bignumValue <= r.bignumValue; });
-            else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.bignumValue >= r.bignumValue; });
-            else if (op == "==") handle_compare([](auto& l, auto& r){ return l.bignumValue == r.bignumValue; });
-            else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.bignumValue != r.bignumValue; });
+            if (left.type == Value::STRING && right.type == Value::STRING) {
+                if (op == "<") handle_compare([](auto& l, auto& r){ return l.strValue < r.strValue; });
+                else if (op == ">") handle_compare([](auto& l, auto& r){ return l.strValue > r.strValue; });
+                else if (op == "<=") handle_compare([](auto& l, auto& r){ return l.strValue <= r.strValue; });
+                else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.strValue >= r.strValue; });
+                else if (op == "==") handle_compare([](auto& l, auto& r){ return l.strValue == r.strValue; });
+                else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.strValue != r.strValue; });
+            } else {
+                if (op == "<") handle_compare([](auto& l, auto& r){ return l.bignumValue < r.bignumValue; });
+                else if (op == ">") handle_compare([](auto& l, auto& r){ return l.bignumValue > r.bignumValue; });
+                else if (op == "<=") handle_compare([](auto& l, auto& r){ return l.bignumValue <= r.bignumValue; });
+                else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.bignumValue >= r.bignumValue; });
+                else if (op == "==") handle_compare([](auto& l, auto& r){ return l.bignumValue == r.bignumValue; });
+                else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.bignumValue != r.bignumValue; });
+            }
         } else if (op == "and" || op == "or") {
             bool leftValue = left.bignumValue != 0;
             bool rightValue = right.bignumValue != 0;

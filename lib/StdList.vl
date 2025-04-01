@@ -1,0 +1,26 @@
+class List
+    fn __init__(length = 0, value = 0)
+        self.list = [value] * length
+    end
+    
+    fn append(x = 0)
+        self.list = append(self.list, x)
+    end
+
+    fn erase(begin = 0, endpos = len(self.list))
+        self.list = erase(self.list, begin, endpos)
+    end
+
+    fn insert(pos = 0, x = 0)
+        self.list = insert(self.list, pos, x)
+    end
+
+    fn size()
+        return len(self.list)
+    end
+
+    fn empty()
+        return self.size() == 0
+    end
+end
+        

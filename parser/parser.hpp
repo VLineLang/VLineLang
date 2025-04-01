@@ -273,9 +273,16 @@ private:
         consume();
         consume();
         std::vector<std::string> parameters;
+        std::vector<Expression*> default_values;
         while (peek().type != TOKEN_PUNCTUATION || peek().value != ")") {
             parameters.push_back(peek().value);
             consume();
+            if (peek().type == TOKEN_OPERATOR && peek().value == "=") {
+                consume();
+                default_values.push_back(expression());
+            } else {
+                default_values.push_back(nullptr);
+            }
             if (peek().type == TOKEN_PUNCTUATION && peek().value == ",") {
                 consume();
             }
@@ -286,7 +293,7 @@ private:
             body.push_back(statement());
         }
         consume();
-        return new FunctionDeclaration(name.value, parameters, body);
+        return new FunctionDeclaration(name.value, parameters, default_values, body);
     }
 
     ReturnStatement* returnStatement() {

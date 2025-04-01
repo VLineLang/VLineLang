@@ -111,6 +111,8 @@ void interpreters() {
             globalFrame.program = mainProgram;
             globalFrame.pc = 0;
         }
+        std::stack<Value>().swap(globalVM.operandStack);
+        globalVM.functions = functions;
 
         // int i = 0;
         // for (auto bytecode : mainProgram) {
