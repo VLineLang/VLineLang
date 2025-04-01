@@ -25,7 +25,7 @@ struct Statement : ASTNode {
         CLASS_DECLARATION,
         CLASS_MEMBER_ASSIGNMENT,
         CONSTANT_DECLARATION,
-        IMPORT_STATEMENT // Add this line
+        IMPORT_STATEMENT
     };
 
     virtual StatementType type() const = 0;
@@ -227,8 +227,10 @@ public:
 struct NewExpression : public Expression {
     std::string className;
     std::vector<Expression*> args_init;
+    bool is_init;
     NewExpression(const std::string& name,
-                  const std::vector<Expression*>& args = {}) : className(name), args_init(args) {}
+                  const std::vector<Expression*>& args = {},
+                  bool init = false) : className(name), args_init(args), is_init(init) {}
 };
 
 struct MemberAccess : public Expression {

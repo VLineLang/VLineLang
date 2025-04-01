@@ -15,12 +15,9 @@ public:
         for (Statement* stmt : statements) {
             generateStatement(stmt, program);
         }
+        
         resolveLabels(program);
         return program;
-    }
-
-    void setReplMode(bool mode) {
-        isReplMode = mode;
     }
 
     struct LoopContext {
@@ -44,14 +41,13 @@ public:
         return constants;
     }
 
-    CodeGen(std::map<std::string, ClassDeclaration*> cls, std::map<std::string, Value> consts) {
+    CodeGen(std::map<std::string, ClassDeclaration*> cls, std::map<std::string, Value> consts, std::map<std::string, FunctionDeclaration*> func) {
         classes = cls;
         constants = consts;
+        functions = func;
     }
 
 private:
-    bool isReplMode = false;
-    bool inFunction = false;
     std::map<std::string, FunctionDeclaration*> functions;
     std::map<std::string, int> variables;
     std::map<std::string, int> labels;
@@ -62,7 +58,7 @@ private:
     int tempVarCounter = 0;
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
-        // program.push_back({CLEAR});
+
         if (auto importStmt = dynamic_cast<ImportStatement*>(stmt)) {
             std::ifstream packageFile(importStmt->packageName + ".vl");
             if (!packageFile.is_open()) {
@@ -80,19 +76,12 @@ private:
             Parser parser(tokens);
             auto importStatements = parser.parse();
 
-            CodeGen importGen(classes, constants);
-            importGen.setReplMode(isReplMode);
+            CodeGen importGen(classes, constants, functions);
             BytecodeProgram importProgram = importGen.generate(importStatements);
-
-            // 将导入的bytecode插入到当前程序中
             program.insert(program.end(), importProgram.begin(), importProgram.end());
-
-            // 合并函数和常量
-            auto newFuncs = importGen.getFunctions();
-            functions.insert(newFuncs.begin(), newFuncs.end());
-            
-            auto newConsts = importGen.getConstants();
-            constants.insert(newConsts.begin(), newConsts.end());
+            functions = importGen.getFunctions();
+            constants = importGen.getConstants();
+            classes = importGen.getClasses();
         }
         else if (auto constDecl = dynamic_cast<ConstantDeclaration*>(stmt)) {
             if (constants.count(constDecl->name)) {
@@ -126,56 +115,63 @@ private:
             }
         }
         else if (auto ifStmt = dynamic_cast<IfStatement*>(stmt)) {
-            // 生成条件表达式
+
             generateExpression(ifStmt->condition, program);
             program.push_back({JUMP_IF_FALSE, createLabel()});
-            size_t falseJumpPos = program.size() - 1; // 记录 if 条件为假时的跳转位置
+            size_t falseJumpPos = program.size() - 1;
         
-            // 生成 if 主体
+
             for (Statement* bodyStmt : ifStmt->body) {
                 generateStatement(bodyStmt, program);
             }
         
-            // 如果有 elif 或 else，需要跳过它们
+            std::vector<int> elifJumpPositions;
+            int endLabel = createLabel();
+        
+
             if (!ifStmt->elifStatements.empty() || !ifStmt->elseBody.empty()) {
-                program.push_back({JUMP, createLabel()});
-                size_t endJumpPos = program.size() - 1; // 记录跳过后续 elif 和 else 的位置
-                program[falseJumpPos].operand = (int)program.size(); // 设置 if 条件为假时的跳转目标
-        
-                // 处理每个 elif 分支
-                for (size_t i = 0; i < ifStmt->elifStatements.size(); ++i) {
-                    auto& elifStmt = ifStmt->elifStatements[i];
-                    generateExpression(elifStmt.first, program); // 生成 elif 条件表达式
-                    program.push_back({JUMP_IF_FALSE, createLabel()});
-                    size_t elifFalseJumpPos = program.size() - 1; // 记录 elif 条件为假时的跳转位置
-        
-                    for (Statement* elifBodyStmt : elifStmt.second) {
-                        generateStatement(elifBodyStmt, program); // 生成 elif 主体
-                    }
-        
-                    // 如果还有后续 elif 或 else，需要跳过它们
-                    if (i != ifStmt->elifStatements.size() - 1 || !ifStmt->elseBody.empty()) {
-                        program.push_back({JUMP, createLabel()});
-                        size_t nextEndJumpPos = program.size() - 1; // 记录跳过后续分支的位置
-                        program[elifFalseJumpPos].operand = (int)program.size(); // 设置 elif 条件为假时的跳转目标
-                        endJumpPos = nextEndJumpPos; // 更新 endJumpPos
-                    } else {
-                        program[elifFalseJumpPos].operand = (int)program.size(); // 最后一个 elif，直接跳到结束
-                    }
-                }
-        
-                // 处理 else 分支
-                if (!ifStmt->elseBody.empty()) {
-                    for (Statement* elseStmt : ifStmt->elseBody) {
-                        generateStatement(elseStmt, program); // 生成 else 主体
-                    }
-                    program[endJumpPos].operand = (int)program.size(); // 设置跳过 elif 的 JUMP 目标
-                } else {
-                    program[endJumpPos].operand = (int)program.size(); // 没有 else，直接跳到结束
-                }
-            } else {
-                program[falseJumpPos].operand = (int)program.size(); // 没有 elif 和 else，直接结束
+                program.push_back({JUMP, endLabel});
+                elifJumpPositions.push_back(program.size() - 1);
             }
+        
+            program[falseJumpPos].operand = (int)program.size();
+        
+
+            for (size_t i = 0; i < ifStmt->elifStatements.size(); ++i) {
+                auto& elifStmt = ifStmt->elifStatements[i];
+        
+                generateExpression(elifStmt.first, program);
+                program.push_back({JUMP_IF_FALSE, createLabel()});
+                size_t elifFalseJumpPos = program.size() - 1;
+        
+                for (Statement* elifBodyStmt : elifStmt.second) {
+                    generateStatement(elifBodyStmt, program);
+                }
+        
+
+                if (i != ifStmt->elifStatements.size() - 1 || !ifStmt->elseBody.empty()) {
+                    program.push_back({JUMP, endLabel});
+                    elifJumpPositions.push_back(program.size() - 1);
+                }
+        
+                program[elifFalseJumpPos].operand = (int)program.size();
+            }
+        
+
+            if (!ifStmt->elseBody.empty()) {
+                for (Statement* elseStmt : ifStmt->elseBody) {
+                    generateStatement(elseStmt, program);
+                }
+            }
+        
+
+            for (auto pos : elifJumpPositions) {
+                program[pos].operand = (int)program.size();
+            }
+        
+
+            program.push_back({LABEL, endLabel});
+            labelAddresses[endLabel] = program.size() - 1;
         }
         else if (auto forStmt = dynamic_cast<ForStatement*>(stmt)) {
             generateExpression(forStmt->iterable, program);
@@ -264,33 +260,23 @@ private:
         else if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(stmt)) {
             functions[funcDecl->name] = funcDecl;
 
-            CodeGen funcGen(classes, constants);
-            funcGen.setReplMode(isReplMode);
-            funcGen.functions = functions;
-            funcGen.inFunction = true;
-
+            CodeGen funcGen(classes, constants, functions);
             BytecodeProgram funcProgram;
             for (Statement* bodyStmt : funcDecl->body) {
                 funcGen.generateStatement(bodyStmt, funcProgram);
             }
-            if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                funcProgram.push_back({RETURN, 0});
-            }
             funcGen.resolveLabels(funcProgram);
             funcDecl->bytecode = funcProgram;
+            functions = funcGen.getFunctions();
+            constants = funcGen.getConstants();
+            classes = funcGen.getClasses();
         }
         else if (auto returnStmt = dynamic_cast<ReturnStatement*>(stmt)) {
-            if (!inFunction) {
-                throwSyntaxError("'return' outside function");
-            }
             generateExpression(returnStmt->value, program);
             program.push_back({RETURN, 0});
         }
         else if (auto exprStmt = dynamic_cast<ExpressionStatement*>(stmt)) {
             generateExpression(exprStmt->expression, program);
-            if (!isReplMode) {
-                program.push_back({POP, 0});
-            }
         }
         else if (auto cls = dynamic_cast<ClassDeclaration*>(stmt)) {
             if (cls->parentName != "self") {
@@ -405,7 +391,7 @@ private:
                 ClassDeclaration* cls = classes[newExpr->className];
                 std::string tempVar = "__temp_obj__";
                 program.push_back({STORE_VAR, tempVar});
-
+                
 
                 for (auto member : cls->members) {
                     if (auto assign = dynamic_cast<Assignment*>(member.second)) {
@@ -416,6 +402,8 @@ private:
                     }
                 }
 
+                
+
                 for (auto func : cls->functions) {
                     program.push_back({LOAD_VAR, tempVar});
                     program.push_back({LOAD_CONST, func.second->name});
@@ -424,20 +412,19 @@ private:
                     program.push_back({STORE_VAR, tempVar});
 
                     functions[cls->className + "." + func.second->name] = func.second;
+                    CodeGen funcGen(classes, constants, functions);
                     BytecodeProgram funcProgram;
-
-                    inFunction = true;
                     for (Statement* bodyStmt : func.second->body) {
-                        generateStatement(bodyStmt, funcProgram);
+                        funcGen.generateStatement(bodyStmt, funcProgram);
                     }
-                    inFunction = false;
-                    if (funcProgram.empty() || funcProgram.back().op != RETURN) {
-                        funcProgram.push_back({RETURN, 0});
-                    }
+                    funcGen.resolveLabels(funcProgram);
                     func.second->bytecode = funcProgram;
+                    functions = funcGen.getFunctions();
+                    constants = funcGen.getConstants();
+                    classes = funcGen.getClasses();
                 }
-
-                if (!newExpr->args_init.empty()) {
+                
+                if (newExpr->is_init) {
                     program.push_back({LOAD_VAR, tempVar});
                     program.push_back({LOAD_CONST, "__temp_obj__"});
                     for (auto arg : newExpr->args_init) {
@@ -473,7 +460,10 @@ private:
             if (labelAddresses.find(labelId) == labelAddresses.end()) {
                 throw std::runtime_error("Undefined label: " + std::to_string(labelId));
             }
+            
             program[pos].operand = labelAddresses[labelId];
+            
+            
         }
         unresolvedJumps.clear();
         labelAddresses.clear();

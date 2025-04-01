@@ -189,7 +189,7 @@ private:
 
         std::vector<Statement*> body;
         while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
-            if (peek().type == TOKEN_KEYWORD && peek().value == "elif") {
+            if ((peek().type == TOKEN_KEYWORD && peek().value == "elif") || (peek().type == TOKEN_KEYWORD && peek().value == "else")) {
                 break;
             }
             body.push_back(statement());
@@ -200,12 +200,13 @@ private:
             consume();
             Expression* elifCondition = expression();
             while (peek().type != TOKEN_KEYWORD || peek().value != "end") {
-                if (peek().type == TOKEN_KEYWORD && peek().value == "else") {
+                if ((peek().type == TOKEN_KEYWORD && peek().value == "else") || (peek().type == TOKEN_KEYWORD && peek().value == "elif")) {
                     break;
                 }
                 elifBody.push_back(statement());
             }
             elifStatements.push_back({elifCondition, elifBody});
+            elifBody.clear();
         }
 
         std::vector<Statement*> elseBody;
@@ -499,7 +500,7 @@ private:
                     args.push_back(expression());
                 }
                 consume();
-                return new NewExpression(className.value, args);
+                return new NewExpression(className.value, args, true);
             }
             return new NewExpression(className.value);
         } else {

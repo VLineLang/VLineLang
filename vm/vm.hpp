@@ -23,7 +23,6 @@ public:
         size_t pc;
         Value returnValue;
 
-
         Frame(const BytecodeProgram& program, Frame* parent = nullptr)
                 : program(program), pc(0), parent(parent) {}
     };

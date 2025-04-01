@@ -5,6 +5,7 @@ std::string filename;
 std::vector<Token> tokens;
 std::vector<Statement*> statements;
 VM globalVM;
+std::map<std::string, FunctionDeclaration*> functions;
 std::map<std::string, ClassDeclaration*> classes;
 std::map<std::string, Value> consts;
 
@@ -65,7 +66,7 @@ void printBytecode(const Bytecode& bytecode) {
             std::cout << "Unknown opcode";
             break;
     }
-    printf(" ");
+    
     Bytecode instr = bytecode;
     try{
         if (!std::get<std::string>(instr.operand).empty()) {
@@ -96,15 +97,10 @@ void printBytecode(const Bytecode& bytecode) {
 
 void interpreters() {
     try {
-        CodeGen codegen(classes, consts);
-        codegen.setReplMode(true);
+        
+        CodeGen codegen(classes, consts, functions);
         BytecodeProgram mainProgram = codegen.generate(statements);
-
-        auto newFuncs = codegen.getFunctions();
-        for (const auto& f : newFuncs) {
-            globalVM.functions[f.first] = f.second;
-        }
-
+        functions = codegen.getFunctions();
         classes = codegen.getClasses();
         consts = codegen.getConstants();
 
@@ -116,9 +112,11 @@ void interpreters() {
             globalFrame.pc = 0;
         }
 
-    //    for (auto bytecode : mainProgram) {
-    //        printBytecode(bytecode);
-    //    }
+        // int i = 0;
+        // for (auto bytecode : mainProgram) {
+        //     cout<<i<<" ", printBytecode(bytecode);
+        //     i++;
+        // }
 
         globalVM.execute();
     } catch (const std::runtime_error& e) {
