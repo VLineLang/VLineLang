@@ -113,6 +113,7 @@ void interpreters() {
         }
         std::stack<Value>().swap(globalVM.operandStack);
         globalVM.functions = functions;
+        globalVM.consts = consts;
 
         // int i = 0;
         // for (auto bytecode : mainProgram) {

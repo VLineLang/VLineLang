@@ -5,6 +5,7 @@
 #include "../parser/value.hpp"
 #include "../std/std.hpp"
 #include "../utils/utils.hpp"
+#include "../bytecode/codegen.hpp"
 #include <vector>
 #include <map>
 #include <stack>
@@ -30,6 +31,7 @@ public:
     std::stack<Frame> frames;
     std::stack<Value> operandStack;
     std::map<std::string, FunctionDeclaration*> functions;
+    std::map<std::string, Value> consts;
 
     void printFrameStack() {
         std::stack<Frame> tempFrames = frames;
@@ -449,15 +451,42 @@ private:
 
 
         if (args.size() > 1 && args[0].type == Value::OBJECT && args[1].type == Value::STRING) {
-            Value& self = args[0];
+            FunctionDeclaration* method;
             std::string className = args[1].strValue;
+            if (args[0].functions.count(op.funcName)) method = args[0].functions[op.funcName];
+            else throwIdentifierError("Undefined method: " + className + "." + op.funcName);
+            
+            BytecodeProgram DefaultValuesBytecodes;
+            CodeGen DefaultVal(std::map<std::string, ClassDeclaration*>(), consts, functions);
+
+            for (size_t i = op.argCount - 2; i < method->parameters.size(); i++) {
+                if (method->default_values[i] != nullptr) {
+                    DefaultVal.genExpr(method->default_values[i], DefaultValuesBytecodes);
+                } else {
+                    throwSyntaxError("Missing argument for parameter '" + method->parameters[i] + "'");
+                }
+            }
+
+            if (!DefaultValuesBytecodes.empty()) {
+                Frame defaultValFrame(DefaultValuesBytecodes, &frames.top());
+                frames.push(defaultValFrame);
+                execute();
+                
+                for (size_t i = op.argCount - 2; i < method->parameters.size(); i++) {
+                    if (!operandStack.empty()) {
+                        args.push_back(operandStack.top());
+                        operandStack.pop();
+                    }
+                }
+                frames.pop();
+            }
+            Value &self = args[0];
+            
             if (self.functions.count(op.funcName)) {
-                FunctionDeclaration* method = self.functions[op.funcName];
-
                 Frame newFrame(method->bytecode, &frames.top());
-
+                
                 newFrame.locals["self"] = self;
-
+                
                 for (size_t i = 0; i < method->parameters.size(); ++i) {
                     if (i + 2 < args.size()) {
                         newFrame.locals[method->parameters[i]] = args[i + 2];

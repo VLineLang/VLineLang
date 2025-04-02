@@ -47,6 +47,10 @@ public:
         functions = func;
     }
 
+    void genExpr(Expression* expr, BytecodeProgram& program) {
+        generateExpression(expr, program);
+    }
+
 private:
     std::map<std::string, FunctionDeclaration*> functions;
     std::map<std::string, int> variables;
@@ -388,7 +392,9 @@ private:
             if (!flag_of_member) { --flag_of_member; }
             else program.push_back({LOAD_CONST, varName});
 
-            auto funcIt = functions.find(funcCall->name);
+            auto funcIt = functions.begin();
+            if (flag_of_member) funcIt = functions.end();
+            else funcIt = functions.find(funcCall->name);
             if (funcIt != functions.end()) {
                 FunctionDeclaration* funcDecl = funcIt->second;
                 size_t providedArgs = funcCall->arguments.size();
