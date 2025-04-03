@@ -48,7 +48,27 @@ private:
         } else if (token.type == TOKEN_IDENTIFIER && peek(1).type == TOKEN_OPERATOR && peek(1).value == ".") {
             size_t savedPos = position;
             try {
-                return classMemberAssignment();
+                if (peek(3).type == TOKEN_PUNCTUATION && peek(3).value == "[") {
+                    std::string className = token.value;
+                    consume();
+                    consume();
+                    std::string memberName = peek().value;
+                    consume();
+                    consume();
+                    Expression* index = expression();
+                    if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
+                        throwSyntaxError("Expected ']' after list index");
+                    }
+                    consume();
+                    if (peek().type != TOKEN_OPERATOR || peek().value != "=") {
+                        throwSyntaxError("Expected '=' after list index");
+                    }
+                    consume();
+                    Expression* value = expression();
+                    return new ClassMemberAssignment(className, memberName, value, index);
+                } else {
+                    return classMemberAssignment();
+                }
             } catch (const std::runtime_error& e) {
                 position = savedPos;
                 Expression* expr = expression();
@@ -420,14 +440,14 @@ private:
             return new UnaryExpression("not", expr);
         } else if (token.type == TOKEN_IDENTIFIER) {
             consume();
-            if (peek().value == ".") {
+            std::vector<Expression*> objects;
+            objects.push_back(new Identifier(token.value));
+            while (peek().value == ".") {
                 consume();
                 Token member = peek();
                 if (member.type != TOKEN_IDENTIFIER) throwSyntaxError("Expected member name");
                 consume();
-                if (peek().type != TOKEN_PUNCTUATION || peek().value != "(") {
-                    return new MemberAccess(new Identifier(token.value), member.value);
-                } else {
+                if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
                     consume();
                     std::vector<Expression*> args;
                     while (true) {
@@ -440,9 +460,28 @@ private:
                         args.push_back(expression());
                     }
                     consume();
-                    return new FunctionCall(token.value + "." + member.value, args);
+                    std::string fullName = objects[0]->toString();
+                    for (size_t i = 1; i < objects.size(); i++) {
+                        fullName += "." + objects[i]->toString();
+                    }
+                    fullName += "." + member.value;
+                    return new FunctionCall(fullName, args);
                 }
-            } else if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
+                objects.push_back(new Identifier(member.value));
+                if (peek().type == TOKEN_PUNCTUATION && peek().value == "[") {
+                    consume();
+                    Expression* index = expression();
+                    if (peek().type != TOKEN_PUNCTUATION || peek().value != "]") {
+                        throwSyntaxError("Expected ']' after list index");
+                    }
+                    consume();
+                    return new MemberAccess(objects, index);
+                }
+            }
+            if (objects.size() > 1) {
+                return new MemberAccess(objects);
+            }
+            if (peek().type == TOKEN_PUNCTUATION && peek().value == "(") {
                 consume();
                 std::vector<Expression*> args;
                 while (true) {

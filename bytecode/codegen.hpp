@@ -310,10 +310,21 @@ private:
             classes[cls->className] = cls;
         }
         else if (auto classMemberAssign = dynamic_cast<ClassMemberAssignment*>(stmt)) {
-            generateExpression(classMemberAssign->value, program);
-            program.push_back({LOAD_VAR, classMemberAssign->className});
-            program.push_back({STORE_MEMBER, classMemberAssign->memberName});
-            program.push_back({STORE_VAR, classMemberAssign->className});
+            if (classMemberAssign->hasIndex) {
+                program.push_back({LOAD_VAR, classMemberAssign->className});
+                program.push_back({LOAD_MEMBER, classMemberAssign->memberName});
+                generateExpression(classMemberAssign->index, program);
+                generateExpression(classMemberAssign->value, program);
+                program.push_back({STORE_SUBSCRIPT, VALUE_NULL()});
+                program.push_back({LOAD_VAR, classMemberAssign->className});
+                program.push_back({STORE_MEMBER, classMemberAssign->memberName});
+                program.push_back({STORE_VAR, classMemberAssign->className});
+            } else {
+                generateExpression(classMemberAssign->value, program);
+                program.push_back({LOAD_VAR, classMemberAssign->className});
+                program.push_back({STORE_MEMBER, classMemberAssign->memberName});
+                program.push_back({STORE_VAR, classMemberAssign->className});
+            }
         }
         else if (dynamic_cast<ContinueStatement*>(stmt)) {
             if (loopContextStack.empty()) {
@@ -382,19 +393,27 @@ private:
             }
         }
         else if (auto funcCall = dynamic_cast<FunctionCall*>(expr)) {
-            int flag_of_member = funcCall->name.find('.') != std::string::npos;
-            std::string varName;
-            if (flag_of_member) {
-                varName = funcCall->name.substr(0, funcCall->name.find('.'));
-                program.push_back({LOAD_VAR, varName});
-                funcCall->name = funcCall->name.substr(funcCall->name.find('.') + 1);
+            std::string fullName = funcCall->name;
+            size_t dotPos = fullName.find('.');
+            if (dotPos != std::string::npos) {
+                std::string firstVar = fullName.substr(0, dotPos);
+                program.push_back({LOAD_VAR, firstVar});
+                
+                while ((dotPos = fullName.find('.', dotPos + 1)) != std::string::npos) {
+                    std::string memberName = fullName.substr(firstVar.length() + 1, dotPos - firstVar.length() - 1);
+                    program.push_back({LOAD_MEMBER, memberName});
+                    firstVar = fullName.substr(0, dotPos);
+                }
+                
+                funcCall->name = fullName.substr(fullName.find_last_of('.') + 1);
             }
-            if (!flag_of_member) { --flag_of_member; }
-            else program.push_back({LOAD_CONST, varName});
 
-            auto funcIt = functions.begin();
-            if (flag_of_member) funcIt = functions.end();
-            else funcIt = functions.find(funcCall->name);
+            std::string varName = fullName.substr(0, fullName.find_last_of('.'));
+
+            int is_member_func = fullName.find('.') != std::string::npos;
+            auto funcIt = is_member_func ? functions.end() : functions.find(funcCall->name);
+            if (!is_member_func) --is_member_func;
+            else program.push_back({LOAD_CONST, varName});
             if (funcIt != functions.end()) {
                 FunctionDeclaration* funcDecl = funcIt->second;
                 size_t providedArgs = funcCall->arguments.size();
@@ -411,12 +430,12 @@ private:
                         throwSyntaxError("Missing argument for parameter '" + funcDecl->parameters[i] + "'");
                     }
                 }
-                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(totalParams + flag_of_member + 1)}});
+                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(totalParams + is_member_func + 1)}});
             } else {
                 for (auto arg : funcCall->arguments) {
                     generateExpression(arg, program);
                 }
-                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + flag_of_member + 1)}});
+                program.push_back({CALL_FUNCTION, CallFunctionOperand{funcCall->name, (int)(funcCall->arguments.size() + is_member_func + 1)}});
             }
         }
         else if (auto newExpr = dynamic_cast<NewExpression*>(expr)) {
@@ -495,8 +514,16 @@ private:
             }
         }
         else if (auto access = dynamic_cast<MemberAccess*>(expr)) {
-            generateExpression(access->object, program);
-            program.push_back({LOAD_MEMBER, access->member});
+            generateExpression(access->objects[0], program);
+            for (size_t i = 1; i < access->objects.size(); i++) {
+                auto* id = dynamic_cast<Identifier*>(access->objects[i]);
+                if (!id) throwSyntaxError("Invalid member access");
+                program.push_back({LOAD_MEMBER, id->name});
+            }
+            if (access->hasIndex) {
+                generateExpression(access->index, program);
+                program.push_back({LOAD_SUBSCRIPT, VALUE_NULL()});
+            }
         }
     }
 

@@ -52,7 +52,6 @@ public:
                 }
             }
 
-
             std::cout << "  Parent Frame: ";
             if (frame.parent == nullptr) {
                 std::cout << "<none>" << std::endl;
@@ -440,8 +439,10 @@ private:
         CallFunctionOperand op = std::get<CallFunctionOperand>(instr.operand);
         std::vector<Value> args;
 
-
         for (int i = 0; i < op.argCount; i++) {
+            if (operandStack.empty()) {
+                throwRuntimeError("Stack underflow in function call");
+            }
             args.insert(args.begin(), operandStack.top());
             operandStack.pop();
         }
@@ -481,6 +482,11 @@ private:
                 frames.pop();
             }
             Value &self = args[0];
+
+            // for (auto function : self.functions) {
+            //     printf("%s ", function.first.c_str()); 
+            // }
+            // printf("\n");
             
             if (self.functions.count(op.funcName)) {
                 Frame newFrame(method->bytecode, &frames.top());
@@ -493,10 +499,26 @@ private:
                     }
                 }
                 frames.push(newFrame);
+
                 result = execute();
 
+                std::string fullName = className;
+                size_t dotPos = fullName.find('.');
+                Value* classPtr = &currFrame.locals[className];
+                if (dotPos != std::string::npos) {
+                    std::string firstVar = fullName.substr(0, dotPos);
+                    classPtr = &currFrame.locals[firstVar];
+                    size_t prevDotPos = dotPos;
+                    while ((dotPos = fullName.find('.', prevDotPos + 1)) != std::string::npos) {
+                        std::string memberName = fullName.substr(prevDotPos + 1, dotPos - prevDotPos - 1);
+                        classPtr = &(classPtr->objectMembers[memberName]);
+                        prevDotPos = dotPos;
+                    }
+                    classPtr = &(classPtr->objectMembers[fullName.substr(prevDotPos + 1)]);
+                }
+
                 for (const auto& it : frames.top().locals["self"].objectMembers) {
-                    currFrame.locals[className].objectMembers[it.first] = it.second;
+                    classPtr->objectMembers[it.first] = it.second;
                 }
 
                 frames.pop();
