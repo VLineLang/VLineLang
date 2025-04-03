@@ -55,54 +55,6 @@ A modern, concise, fast, and powerful high-level programming language.
 - System Functions: `sleep`, `system`, `exit`, `time`
 - File Operations: `read`, `write`
 
-## Basic Syntax
-
-### Variables and Constants
-```
-x = 10
-const PI = 3.14159
-```
-
-### Control Flow
-```
-if x > 0
-    print("Positive")
-else
-    print("Non-positive")
-end
-
-while i < 10
-    i = i + 1
-end
-
-for i in range(10)
-    print(i)
-end
-```
-
-### Functions
-```
-fn add(a, b)
-    return a + b
-end
-```
-
-### Classes and Objects
-```
-class Point
-    fn init(x, y)
-        self.x = x
-        self.y = y
-    end
-    
-    fn distance(other)
-        dx = self.x - other.x
-        dy = self.y - other.y
-        return sqrt(dx * dx + dy * dy)
-    end
-end
-```
-
 ## Project Structure
 
 - `lexer/`: Tokenization of source code
@@ -123,6 +75,10 @@ end
 
 - `std/`: Standard Library
   - Built-in functions and utilities
+
+## Documentation
+
+For detailed language documentation and usage examples, please visit our [official documentation](https://vlinelang.github.io/).
 
 ## License
 

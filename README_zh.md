@@ -48,60 +48,12 @@
 
 ## 内置函数
 
-- 输入输出：`print`、`input`
-- 列表操作：`len`、`append`、`erase`、`insert`
-- 类型操作：`type`、`list`、`str`、`number`
-- 数学函数：`floor`、`ceil`、`abs`、`pow`、`round`、`sqrt`
-- 系统函数：`sleep`、`system`、`exit`、`time`
-- 文件操作：`read`、`write`
-
-## 基本语法
-
-### 变量和常量
-```
-x = 10
-const PI = 3.14159
-```
-
-### 流程控制
-```
-if x > 0
-    print("正数")
-else
-    print("非正数")
-end
-
-while i < 10
-    i = i + 1
-end
-
-for i in range(10)
-    print(i)
-end
-```
-
-### 函数
-```
-fn add(a, b)
-    return a + b
-end
-```
-
-### 类和对象
-```
-class Point
-    fn init(x, y)
-        self.x = x
-        self.y = y
-    end
-    
-    fn distance(other)
-        dx = self.x - other.x
-        dy = self.y - other.y
-        return sqrt(dx * dx + dy * dy)
-    end
-end
-```
+- 输入/输出：`print`, `input`
+- 列表操作：`len`, `append`, `erase`, `insert`
+- 类型操作：`type`, `list`, `str`, `number`
+- 数学函数：`floor`, `ceil`, `abs`, `pow`, `round`, `sqrt`
+- 系统函数：`sleep`, `system`, `exit`, `time`
+- 文件操作：`read`, `write`
 
 ## 项目结构
 
@@ -110,7 +62,7 @@ end
   - `token.hpp`：词法单元定义
 
 - `parser/`：语法分析
-  - `parser.hpp`：语法分析器实现
+  - `parser.hpp`：解析器实现
   - `errors.hpp`：错误处理
   - `value.hpp`：值表示
 
@@ -124,6 +76,10 @@ end
 - `std/`：标准库
   - 内置函数和工具
 
+## 文档
+
+详细的语言文档和使用示例，请访问我们的[官方文档](https://vlinelang.github.io/)。
+
 ## 许可证
 
-本项目基于仓库中 LICENSE 文件的条款进行许可。
+本项目基于仓库中LICENSE文件的条款进行许可。
