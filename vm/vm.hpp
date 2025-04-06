@@ -391,7 +391,10 @@ private:
                 else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.bignumValue >= r.bignumValue; });
                 else if (op == "==") handle_compare([](auto& l, auto& r){ return l.bignumValue == r.bignumValue; });
                 else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.bignumValue != r.bignumValue; });
-            } else {
+            } else if (left.type == Value::NULL_TYPE && right.type == Value::NULL_TYPE) {
+                operandStack.push(Value(BigNum(1))); 
+            }
+            else {
                 operandStack.push(Value(BigNum(0)));
             }
         } else if (op == "and" || op == "or") {
