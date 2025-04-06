@@ -25,6 +25,7 @@ enum BytecodeOp {
     LOAD_FUNC,         // 加载函数闭包
     STORE_MEMBER_FUNC, // 存储成员函数到对象
     // CLEAR,             // 清空栈
+    RAISE,             // 抛出异常
     LABEL              // 标签（用于跳转目标）
 };
 

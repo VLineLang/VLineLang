@@ -122,6 +122,9 @@ void interpreters() {
         // }
 
         globalVM.execute();
+    } catch (const UserError& e) {
+        std::cerr << e.getMessage() << std::endl;
+        if (flag) exit(1);
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << std::endl;
         if (flag) exit(1);

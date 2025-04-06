@@ -96,6 +96,8 @@ private:
             return constantDeclaration();
         } else if (token.type == TOKEN_KEYWORD && token.value == "import") {
             return importStatement();
+        } else if (token.type == TOKEN_KEYWORD && token.value == "raise") {
+            return raiseStatement();
         }
         else {
             Expression* expr = expression();
@@ -111,6 +113,12 @@ private:
         }
         consume();
         return new ImportStatement(packageToken.value);
+    }
+    
+    RaiseStatement* raiseStatement() {
+        consume();
+        Expression* errorMessage = expression();
+        return new RaiseStatement(errorMessage);
     }
 
     ConstantDeclaration* constantDeclaration() {

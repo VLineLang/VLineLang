@@ -13,6 +13,18 @@ const std::string ZERO_DIVISION_ERROR = "Zero Division Error: ";
 const std::string RECURSION_ERROR = "Recursion Error: ";
 const std::string RUNTIME_ERROR = "Runtime Error: ";
 
+class UserError : public std::runtime_error {
+public:
+    explicit UserError(const std::string& msg) : std::runtime_error(msg), message(msg) {}
+    const std::string& getMessage() const { return message; }
+private:
+    std::string message;
+};
+
+inline void throwUserError(const std::string& msg) {
+    throw UserError(msg);
+}
+
 inline void throwRuntimeError(const std::string& msg) {
     throw std::runtime_error(RUNTIME_ERROR + msg);
 }

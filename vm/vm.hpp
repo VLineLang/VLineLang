@@ -181,6 +181,18 @@ public:
                         }
                         break;
                     }
+                    case RAISE: {
+                        if (operandStack.empty()) {
+                            throwRuntimeError("Stack underflow in raise operation");
+                        }
+                        Value errorMsg = operandStack.top();
+                        operandStack.pop();
+                        if (errorMsg.type != Value::STRING) {
+                            throwTypeError("Raise requires a string message");
+                        }
+                        throwUserError(errorMsg.strValue);
+                        break;
+                    }
                     case STORE_MEMBER_FUNC: {
                         if (operandStack.size() < 3) throwRuntimeError("Stack underflow");
                         Value func = operandStack.top(); operandStack.pop();

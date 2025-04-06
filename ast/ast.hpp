@@ -27,7 +27,8 @@ struct Statement : ASTNode {
         CLASS_DECLARATION,
         CLASS_MEMBER_ASSIGNMENT,
         CONSTANT_DECLARATION,
-        IMPORT_STATEMENT
+        IMPORT_STATEMENT,
+        RAISE_STATEMENT
     };
 
     virtual StatementType type() const = 0;
@@ -194,6 +195,16 @@ struct BreakStatement : Statement {
 struct ContinueStatement : Statement {
     StatementType type() const override {
         return CONTINUE_STATEMENT;
+    }
+};
+
+struct RaiseStatement : Statement {
+    Expression* errorMessage;
+    
+    RaiseStatement(Expression* errorMessage) : errorMessage(errorMessage) {}
+    
+    StatementType type() const override {
+        return RAISE_STATEMENT;
     }
 };
 

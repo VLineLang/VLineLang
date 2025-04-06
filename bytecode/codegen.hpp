@@ -63,7 +63,11 @@ private:
 
     void generateStatement(Statement* stmt, BytecodeProgram& program) {
 
-        if (auto importStmt = dynamic_cast<ImportStatement*>(stmt)) {
+        if (auto raiseStmt = dynamic_cast<RaiseStatement*>(stmt)) {
+            generateExpression(raiseStmt->errorMessage, program);
+            program.push_back({RAISE, VALUE_NULL()});
+        }
+        else if (auto importStmt = dynamic_cast<ImportStatement*>(stmt)) {
             std::string workspacePath = importStmt->packageName + ".vl";
             std::string workspaceDirPath = importStmt->packageName + "/__init__.vl";
             std::string libPath = "lib/" + importStmt->packageName + ".vl";

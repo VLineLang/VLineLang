@@ -90,7 +90,7 @@ private:
             value == "and" || value == "or" || value == "not" || value == "else" ||
             value == "elif" || value == "break" || value == "continue" || value == "null" ||
             value == "for" || value == "in" || value == "class" || value == "new" ||
-            value == "const" || value == "end" || value == "import") {
+            value == "const" || value == "end" || value == "import" || value == "raise") {
             return {TOKEN_KEYWORD, value};
         }
         return {TOKEN_IDENTIFIER, value};
