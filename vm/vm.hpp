@@ -384,13 +384,15 @@ private:
                 else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.strValue >= r.strValue; });
                 else if (op == "==") handle_compare([](auto& l, auto& r){ return l.strValue == r.strValue; });
                 else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.strValue != r.strValue; });
-            } else {
+            } else if (left.type == Value::NUMBER && right.type == Value::NUMBER) {
                 if (op == "<") handle_compare([](auto& l, auto& r){ return l.bignumValue < r.bignumValue; });
                 else if (op == ">") handle_compare([](auto& l, auto& r){ return l.bignumValue > r.bignumValue; });
                 else if (op == "<=") handle_compare([](auto& l, auto& r){ return l.bignumValue <= r.bignumValue; });
                 else if (op == ">=") handle_compare([](auto& l, auto& r){ return l.bignumValue >= r.bignumValue; });
                 else if (op == "==") handle_compare([](auto& l, auto& r){ return l.bignumValue == r.bignumValue; });
                 else if (op == "!=") handle_compare([](auto& l, auto& r){ return l.bignumValue != r.bignumValue; });
+            } else {
+                operandStack.push(Value(BigNum(0)));
             }
         } else if (op == "and" || op == "or") {
             bool leftValue = left.bignumValue != 0;
