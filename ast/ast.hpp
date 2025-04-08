@@ -9,9 +9,7 @@ struct ASTNode {
     virtual ~ASTNode() = default;
 };
 
-struct Expression : ASTNode {
-    virtual std::string toString() const = 0;
-};
+struct Expression : ASTNode {};
 
 struct Statement : ASTNode {
     enum StatementType {
@@ -109,15 +107,6 @@ struct FunctionCall : Expression {
 
     FunctionCall(const std::string& name, const std::vector<Expression*>& arguments)
             : name(name), arguments(arguments) {}
-    std::string toString() const override {
-        std::string result = name + "(";
-        for (size_t i = 0; i < arguments.size(); ++i) {
-            if (i > 0) result += ", ";
-            result += arguments[i]->toString();
-        }
-        result += ")";
-        return result;
-    }
 };
 
 struct BinaryExpression : Expression {
@@ -127,9 +116,6 @@ struct BinaryExpression : Expression {
 
     BinaryExpression(const std::string& op, Expression* left, Expression* right)
             : op(op), left(left), right(right) {}
-    std::string toString() const override {
-        return "(" + left->toString() + " " + op + " " + right->toString() + ")";
-    }
 };
 
 struct UnaryExpression : Expression {
@@ -138,42 +124,27 @@ struct UnaryExpression : Expression {
 
     UnaryExpression(const std::string& op, Expression* expr)
             : op(op), expr(expr) {}
-    std::string toString() const override {
-        return op + expr->toString();
-    }
 };
 
 struct NumberLiteral : Expression {
     BigNum value;
     NumberLiteral(const BigNum& val) : value(val) {}
-    std::string toString() const override {
-        return value.to_string();
-    }
 };
 
 struct StringLiteral : Expression {
     std::string value;
 
     StringLiteral(const std::string& value) : value(value) {}
-    std::string toString() const override {
-        return value;
-    }
 };
 
 struct NullLiteral : Expression {
     NullLiteral() = default;
-    std::string toString() const override {
-        return "null";
-    }
 };
 
 struct Identifier : Expression {
     std::string name;
 
     Identifier(const std::string& name) : name(name) {}
-    std::string toString() const override {
-        return name;
-    }
 };
 
 struct ReturnStatement : Statement {
@@ -222,15 +193,6 @@ struct ListLiteral : Expression {
     std::vector<Expression*> elements;
 
     ListLiteral(const std::vector<Expression*>& elements) : elements(elements) {}
-    std::string toString() const override {
-        std::string result = "[";
-        for (size_t i = 0; i < elements.size(); ++i) {
-            if (i > 0) result += ", ";
-            result += elements[i]->toString();
-        }
-        result += "]";
-        return result;
-    }
 };
 
 struct ForStatement : Statement {
@@ -283,18 +245,6 @@ struct NewExpression : public Expression {
     NewExpression(const std::string& name,
                   const std::vector<Expression*>& args = {},
                   bool init = false) : className(name), args_init(args), is_init(init) {}
-    std::string toString() const override {
-        std::string result = "new " + className;
-        if (!args_init.empty()) {
-            result += "(";
-            for (size_t i = 0; i < args_init.size(); ++i) {
-                if (i > 0) result += ", ";
-                result += args_init[i]->toString();
-            }
-            result += ")";
-        }
-        return result;
-    }
 };
 
 struct MemberAccess : public Expression {
@@ -304,17 +254,6 @@ struct MemberAccess : public Expression {
 
     MemberAccess(const std::vector<Expression*>& objs, Expression* idx = nullptr) 
         : objects(objs), index(idx), hasIndex(idx != nullptr) {}
-
-    std::string toString() const {
-        std::string result = objects[0]->toString();
-        for (size_t i = 1; i < objects.size(); i++) {
-            result += "." + objects[i]->toString();
-        }
-        if (hasIndex) {
-            result += "[" + index->toString() + "]";
-        }
-        return result;
-    }
 };
 
 struct ConstantDeclaration : Statement {

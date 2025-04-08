@@ -468,9 +468,14 @@ private:
                         args.push_back(expression());
                     }
                     consume();
-                    std::string fullName = objects[0]->toString();
+                    std::string fullName = "";
+                    if (auto id = dynamic_cast<Identifier*>(objects[0])) {
+                        fullName = id->name;
+                    }
                     for (size_t i = 1; i < objects.size(); i++) {
-                        fullName += "." + objects[i]->toString();
+                        if (auto id = dynamic_cast<Identifier*>(objects[i])) {
+                            fullName += "." + id->name;
+                        }
                     }
                     fullName += "." + member.value;
                     return new FunctionCall(fullName, args);
